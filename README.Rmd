@@ -1,33 +1,33 @@
+---
+output: github_document
+---
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+```
+
 ## PannotatoR Source Code
 
-The Panospheric Image Annotator in R (PannotatoR) software package
-provides an easy-to-use interface for visualising 360 degree camera
-images on satellite imagery and annotating the images with data selected
-from user-defined drop-down menus. It’s designed for use in ecological
-and biogeographical research but can be used to extract data from any
-spatially explicit 360 degree camera imagery.
+The Panospheric Image Annotator in R (PannotatoR) software package provides an easy-to-use interface for visualising 360 degree camera images on satellite imagery and annotating the images with data selected from user-defined drop-down menus. It's designed for use in ecological and biogeographical research but can be used to extract data from any spatially explicit 360 degree camera imagery.
 
-The package was built using Golem and is web application that can run
-locally on any current computer system.
+The package was built using Golem and is web application that can run locally on any current computer system.
 
 See the instructions below to get everything installed an running.
 
-This vignette provides an overview of the functionality of the package,
-including setup and configuration, interface layout, image selection,
-drop-down menu specification, annotation of image files, and exporting
-data.
+This vignette provides an overview of the functionality of the package, including setup and configuration, interface layout, image selection, drop-down menu specification, annotation of image files, and exporting data.
 
 ## Installation
 
-The PannotatoR package makes extensive use of ExifTool by Phil Harvey
-([Exiftool.org](https://exiftool.org/)). To make installation of
-ExifTool accessible in R there is a package exiftoolr that you must
-install by running the code below.
+The PannotatoR package makes extensive use of ExifTool by Phil Harvey ([Exiftool.org](https://exiftool.org/)). To make installation of ExifTool accessible in R there is a package exiftoolr that you must install by running the code below.
 
-``` r
+```{r eval=FALSE, paged.print=FALSE}
 # First check if you have exiftoolr installed
 check_for_package <- system.file(package = "exiftoolr")
 print(check_for_package)
@@ -41,10 +41,9 @@ if (check_for_package == "") {
 }
 ```
 
-Now that you have installed exiftoolr we can check to make sure that
-ExifTool is on your system.
+Now that you have installed exiftoolr we can check to make sure that ExifTool is on your system.
 
-``` r
+```{r, error=TRUE, eval= FALSE}
 library(exiftoolr)  
 check_for_ExifTool <- exiftoolr::exif_version(quiet = TRUE)
 
@@ -57,10 +56,9 @@ if (exists("check_for_ExifTool")) {
 }
 ```
 
-You must also install the ‘remotes’ package which we will use to install
-the PannotatoR package.
+You must also install the 'remotes' package which we will use to install the PannotatoR package.
 
-``` r
+```{r, eval=FALSE}
 check_for_package <-  system.file(package = "remotes")
 
 print(check_for_package)
@@ -73,11 +71,9 @@ if (check_for_package == "") {
 }
 ```
 
-One last package not currently on CRAN is called ‘gridlayout’. The code
-below checks for that and if need be installs it using the remotes
-package.
+One last package not currently on CRAN is called 'gridlayout'. The code below checks for that and if need be installs it using the remotes package.
 
-``` r
+```{r, eval=FALSE}
 check_for_package <-  system.file(package = "gridlayout")
 
 print(check_for_package)
@@ -92,24 +88,24 @@ if (check_for_package == "") {
 
 You can now install the development version of the PannotatoR software.
 
-``` r
+```{r, eval=FALSE}
 library(remotes)
 
 # to install a local version use this code: 
 # edit the path to point to your loacal version of the package.
-#remotes::install_local(path = "path to the local file/PannotatoR_0.0.0.9000.tar.gz") 
+remotes::install_local(path = "PannotatoR_0.0.0.9000.tar.gz") 
+
 ```
 
 Finally, to run the application use the following code.
 
-``` r
+```{r, eval=FALSE}
 library(PannotatoR) 
 run_app()
 ```
 
 If you want help you can find it using the following code:
 
-``` r
+```{r}
 vignette('PannotatoR', package = 'PannotatoR')
-#> starting httpd help server ... done
 ```

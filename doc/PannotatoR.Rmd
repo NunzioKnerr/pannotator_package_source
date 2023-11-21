@@ -1,0 +1,124 @@
+---
+title: "PannotatoR"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{PannotatoR}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Introductory Vignette
+
+The Panospheric Image Annotator in R (PannotatoR) software package provides an easy-to-use interface for visualising 360 degree camera images on satellite imagery and annotating the images with data selected from user-defined drop-down menus. It is designed for use in ecological and biogeographical research but can be used to extract data from any spatially explicit 360 degree camera imagery. This vignette provides an overview of the functionality of the package, including setup and configuration, interface layout, image selection, drop-down menu specification, annotation of image files, and exporting data.
+
+To run the application use the following code.
+
+```{r, eval=FALSE}
+library(PannotatoR) 
+run_app()
+```
+
+## User Interface Layout
+
+The PannotatoR graphical user interface contains three panels. The Spatial Mapping Panel (left panel) contains a button for selecting a .kmz file containing one or more images, a window for rendering the geolocation of images in the .kmz file onto satellite imagery, and several spatial mapping tools. The Image Selection and Visualisation Panel (centre panel) contains a dropdown menu for navigating to individual image files and a window that loads the equirectangular image into 360 degree viewing mode using the Pannellum web viewer. The Annotation Panel (right panel) contains a settings button, image and annotation file information and a series of customisable drop-down menus that contain user names, help files, image annotation functionality, and data save and export functions. This Shiny app relies on several R packages including leaflet, leaflet.extras, shinyFiles, exiftoolr and shinywidgets for key functionality.
+
+### ![PannotatoR Layout](Images/GUI_layout.png){width="100%"}
+
+### Setup and Configuration
+
+The PannotatoR application can be opened in any web browser. Once running, settings can be accessed using the cog icon at the top corner of the Annotation Panel. The drop down window contains three panels: a 'Main Settings' panel, a 'Lookups' panel, and an 'About This Software' panel. In the Main Settings panel you can change general settings. This includes:
+
+1.  adjust the size of the Spatial Mapping, Image Selection and Visualisation and Annotation Panels
+
+2.  set the background map used in the Spatial Mapping Panel
+
+3.  select a custom user name lookup file
+
+4.  define the format of the annotation export file (e.g., .csv or .rds).
+
+![Settings panels](Images/Configurations_Settings_Panels.png){width="100%"}
+
+In the 'Lookups' Panel you can specify up to four data fields that will be used to annotate the images. The name of the data field name can be specified in the 'Lookup Label' text boxes. The categories for the data field are specified in an accompanying .csv file which can be linked using the 'Lookup csv File' browse buttons. The Lookup csv file has two columns: 1) a 'display' column and 2) a 'value' column. The text in the 'display' column will appear in the Lookup drop down menu and the 'value' will saved to the annotation file. This way your 'display' category can differ from the data field in the export file if needed. An accompanying .pdf help file can be uploaded to assist the annotator using the Lookup Help File browse buttons. The help file can then be accessed using buttons created in the Annotation Panel (see below).
+
+![Example .csv lookup files](Images/Lookup_csvs.png){width="100%"}
+
+**Note**: once changes have been made to settings and configurations you must relaunch the application to enable the changes!
+
+### Spatial Mapping Panel
+
+The Spatial Mapping Panel allows the user to upload a .kmz file and render it using the [Leaflet](https://leafletjs.com/) open source javascript library for mobile friendly interactive maps. This plots the geolocations of all images in the .kmz file, which is useful for visualising the layout of sampling transects or points associated with each .kmz file. It also contains a button for adding overlays (e.g., fire history, vegetation types) to the satellite image for mapping purposes (right). The geolocation of an image loaded in the Image Selection and Visualisation Panel is highlighted in purple (left).
+
+![Mapping window (left) with overlay function (right).](Images/Mapping_window.png){fig-align="left" width="100%"}
+
+The window contains zoom in and zoom out buttons, a 360 degree image checkbox which turns on and off the loaded image locations (yellow points), and the leaflet measure path tool plugin (left) which can be used to determine the distance of any feature from the location of a selected image or any other point on the map. It also contains a plugin tool for dropping specific geolocation markers (right), to which data may be then added using drop-down menus in the Annotation Panel.
+
+## ![Tools for distance measurement (left) and addition of geolocation points (right).](Images/Mapping_Tools.png){width="100%"}
+
+## Image Selection and Visualisation Panel
+
+The Image Selection and Visualisation Panel uses the Pannellum web viewer to load an equirectangular image selected from a .kmz file using the dropdown menu and renders the image into the interactive 360 degree viewing mode. The panel has buttons for zoom in, zoom out and full screen mode and can also contain the compass bearing of the direction in which the image is being viewed (if present in metadata).
+
+The 360 viewing mode allows the user to extract target information from each selected image. Figure 6 (below) shows several key ecological applications, including species identification and mapping (left), estimation of vertically projected ground-layer vegetation cover (centre), and estimation of crown health for individual trees (right). In each case data annotation is performed in the Annotation Panel using help files as visual and/or descriptive aids (see below).
+
+Estimation of vertically projected ground layer cover may be assisted by overlaying sampling templates constructed from reference images (e..g., camera images containing plots of specified size laid out using markers or tape etc.) onto each sample image. In this example (centre) a 10 m diameter plot is shown, centred on the vertically projected camera location. The plot has been broken into 4, 20 and 100 equal areal increments (90, 18 and 3.6 degrees) to assist with cover estimation of scattered and/or small taxa. The two orthogonal lines that divide the plot have been marked with 1 m increments to assist the user in estimating size and cover while taking into account image distortion.
+
+One key benefit of sampling in transects or in a regular pattern is that objects can be may be viewed from multiple perspectives for identification and/or classification. This is advantageous when sampling objects with obstructed views or large, three-dimensional objects that are not entirely visible from a single perspective.
+
+## ![Common ecological applications using the visualisation panel. Left: species identification and mapping. Four candidate species are labelled (A-D). The plants labelled C and D can be located by dropping a pin in the Spatial Mapping Panel. Centre: cover estimation of ground layer vegetation. Cover may be assisted by comparison with example 25%, 5% and 1% areas. Right: Crown health classification. In this example the intent is to estimate the percentage of the potential crown that has healthy green leaves.](Images/Figure4_c.png){width="100%"}
+
+## Annotation Panel
+
+The purpose of the of the Annotation Panel is to generate data from camera images using pre-determined data fields and then export the data. The top of the panel (left) shows the user name dropdown menu, annotation file name, and the image file currently loaded in the Image Selection and Visualisation Panel. The user name list is customisable and each user name generates a separate annotation file. The ability to add multiple users is essential because it allows for evaluation of classification or scoring reliability among different users.
+
+### Adding Data Records
+
+A new data record is added to either an image or point marker by selecting the Add New Record button (centre). In the example provided, size class and the presence of fire are provided for a species (mulga, *Acacia aneura*), followed by dropdown menus (in gray) for count and impact (in this case drought impact). The bottom drop down menu (here called 'Other') allows the user to record the presence of other species (right). Dropdown menus for adding records are user defined according to the requirements of the project. Multiple new records can be added to each image. New records can be removed prior to saving the record.
+
+![Adding a record to image or point markers.](Images/Annotation_panel.png){fig-align="left" width="100%"}
+
+### Help Files
+
+Data records are added with the assistance of help files accessed using the associated button. In this example the help file provided contains images of species present in the study area (left). Help files developed by the user can be uploaded as required. An example containing reference images for species identity (top row), cover classes (centre row) and size class (bottom row).
+
+![Example help files for collection of ecological data from 360 degree images.](Images/Figure_6.png){width="100%"}
+
+### Exporting Data
+
+Data may be exported in .csv and .rds formats. An example .rds file viewed in R is provided below. The file contains user name, leaflet_id (unique ID for leaflet map), image file, feature type (image marker or point marker), geometry and the four data fields specified in the Annotation Panel drop down menu.
+
+![Exported data file containing annotations appended to camera image metadata.](Images/Data_file.png){fig-align="left" width="100%"}
+
+### Visualising Data
+
+Below is a simple example of R code for visualising a sample of exported data using the R package mapview. A complete set of code for extracting and visualising species distribution data, cover data and tree crown health data are provided in the accompanying PannotatoR_Examples repository.
+
+```{r, eval=F, echo=T}
+#library(dplyr) 
+#library(mapview) 
+#library(RColorBrewer) 
+#library(sf)   
+df_annotation <- readRDS("C:/user_1_annotations.rds") 
+# read in the .rds file 
+df_annotation <- st_as_sf(df_annotation, wkt = "geometry",crs = 4326) 
+#define  
+#the geometry  
+df_annotation$dd2 <- as.numeric(df_annotation$dd2) 
+# dd2 = -999 where crowns  
+# have not been assessed for health (NA);
+# range = 0 for no live leaves (entirely # dead) to 100 for entire crown healthy  
+df_annotation <- subset(df_annotation, dd2 > -1 ) 
+# select only records where  
+# Allocasuarina crowns have been assessed for health; that is, excluding NA records   
+mapviewOptions(basemaps = c("Esri.WorldImagery"),
+               vector.palette = colorRampPalette(c("red","orange", "yellow", "green")),
+               layers.control.pos = "topright")   mapview(df_annotation, zcol = "dd2 ", na.rm = TRUE) 
+```
+
+![Map generated with mapview](Images/Mapview.png){width="82%"}
