@@ -1,22 +1,38 @@
-Package: PannotatoR
+Package: pannotator
 Title: A Package for Annotating Panospheric (360 Degree) Images in R
-Version: 0.0.0.9000
-Authors@R: person('Guest', 'Person', email = 'Guest.Person@google.com', role = c('cre', 'aut'))
-Description: PannotatoR is an interface for collecting ecological data from 360 degree image files and annotating them using dropdown menus. The interface is designed to be flexible and allows annotation of any geocoded images.  The use of 360 cameras now allows the user to see in all directions and generate data on almost any macroscopic variable visible in an image. This package provides an immersive sampling experience for the user.
+Version: 0.0.0.9001
+Authors@R: 
+    person("Guest", "Person", , "Guest.Person@google.com", role = c("cre", "aut"))
+Description: Pannotator is an interface for collecting ecological data
+    from 360 degree image files and annotating them using dropdown menus.
+    The interface is designed to be flexible and allows annotation of any
+    geocoded images.  The use of 360 cameras now allows the user to see in
+    all directions and generate data on almost any macroscopic variable
+    visible in an image. This package provides an immersive sampling
+    experience for the user.
 License: GPL (>= 3)
 URL: https://Removed.for.review
 BugReports: https://Removed.for.review/issues
 Imports: 
     bslib,
+    colourpicker,
     config,
     configr,
     dplyr,
     exiftoolr,
     fs,
+    geojsonsf,
+    ggplot2,
     golem,
+    grDevices,
     gridlayout,
+    htmlwidgets,
+    jpeg,
+    jsonify,
+    jsonlite,
     leaflet,
     leaflet.extras,
+    leafpm,
     magrittr,
     readr,
     sf,
@@ -24,6 +40,7 @@ Imports:
     shinyFiles,
     shinyhelper,
     shinyjs,
+    shinythemes,
     shinyWidgets,
     stringr,
     utils
@@ -35,5 +52,7 @@ Suggests:
 VignetteBuilder: 
     knitr
 Config/testthat/edition: 3
+Encoding: UTF-8
 Language: en-US
-RoxygenNote: 7.2.3
+LazyData: true
+RoxygenNote: 7.3.1

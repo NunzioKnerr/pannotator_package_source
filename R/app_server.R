@@ -3,7 +3,6 @@
 #' @param input,output,session Internal parameters for {shiny}.
 #'     DO NOT REMOVE.
 #' @import shiny
-#' @import shinyhelper
 #' @noRd
 app_server <- function(input, output, session) {
   # Your application server logic
@@ -11,8 +10,10 @@ app_server <- function(input, output, session) {
 
   removeKmzFiles()
 
-  mod_control_form_server("control_form_1", r)
-  mod_leaflet_map_server("leaflet_map_1", r)
-  mod_360_image_server("360_image_1", r)
+  mod_control_form_server("control_form", r)
+  mod_leaflet_map_server("leaflet_map", r)
+  mod_360_image_server("pano360_image", r)
 
-  }
+
+
+}

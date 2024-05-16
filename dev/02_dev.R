@@ -15,39 +15,38 @@
 
 ## Dependencies ----
 ## Amend DESCRIPTION with dependencies read from package code parsing
-##install.packages('attachment') # if needed.
+## install.packages('attachment') # if needed.
 attachment::att_amend_desc()
 usethis::use_package("leaflet")
 usethis::use_package("leaflet.extras")
-#usethis::use_package("leaflet.extras2")
-#usethis::use_package("leaflet.providers")
+usethis::use_package("leafpm")
 usethis::use_package("shinyhelper")
 usethis::use_package("shinyWidgets")
 usethis::use_package("shinyjs")
-#usethis::use_package("stringi")
+usethis::use_package("stringr")
+usethis::use_package("bslib")
+usethis::use_package("colourpicker")
+usethis::use_package("ggplot2")
+usethis::use_package("grDevices")
+usethis::use_package("jpeg")
 usethis::use_package("stringr")
 usethis::use_package("fs")
 usethis::use_package("shinyFiles")
 usethis::use_package("readr")
-#usethis::use_package("tibble")
 usethis::use_package("exiftoolr")
-#usethis::use_package("rmarkdown")
 usethis::use_package("utils")
 usethis::use_package("dplyr")
 usethis::use_package("magrittr")
-#usethis::use_package("htmlwidgets")
 usethis::use_package("gridlayout")
-usethis::use_package("bslib")
-#usethis::use_package("shinythemes")
-#usethis::use_package("rappdirs")
-#usethis::use_package("hoardr")
+usethis::use_package("shinythemes")
 usethis::use_package("configr")
 usethis::use_pipe()
+
 ## Add modules ----
 ## Create a module infrastructure in R/
-golem::add_module(name = "control_form", with_test = FALSE) # Name of the module
-golem::add_module(name = "leaflet_map", with_test = FALSE) # Name of the module
-golem::add_module(name = "360_image", with_test = FALSE) # Name of the module
+golem::add_module(name = "control_form", with_test = TRUE) # Name of the module
+golem::add_module(name = "leaflet_map", with_test = TRUE) # Name of the module
+golem::add_module(name = "360_image", with_test = TRUE)
 
 ## Add helper functions ----
 ## Creates fct_* and utils_*
@@ -56,14 +55,13 @@ golem::add_fct("helpers", with_test = TRUE)
 
 ## External resources
 ## Creates .js and .css files at inst/app/www
-#golem::add_js_file("script")
-#golem::add_js_handler("handlers")
-#golem::add_css_file("custom")
-#golem::add_sass_file("custom")
+golem::add_js_file("script")
+golem::add_js_handler("handlers")
+golem::add_css_file("custom")
+golem::add_sass_file("custom")
 
 ## Add internal datasets ----
 ## If you have data in your package
-#usethis::use_data_raw(name = "my_dataset", open = FALSE)
 #usethis::use_data_raw(name = "my_dataset", open = FALSE)
 
 ## Tests ----
@@ -73,7 +71,7 @@ golem::add_fct("helpers", with_test = TRUE)
 # Documentation
 
 ## Vignette ----
-usethis::use_vignette("PannotatoR")
+usethis::use_vignette("pannotator")
 devtools::build_vignettes()
 
 ## Code Coverage----
@@ -81,42 +79,42 @@ devtools::build_vignettes()
 #usethis::use_coverage()
 
 # Create a summary readme for the testthat subdirectory
-#covrpage::covrpage()
+covrpage::covrpage()
 
 ## CI ----
 ## Use this part of the script if you need to set up a CI
 ## service for your application
 ##
 ## (You'll need GitHub there)
-#usethis::use_github()
-
-# GitHub Actions
-#usethis::use_github_action()
-# Chose one of the three
-# See https://usethis.r-lib.org/reference/use_github_action.html
-#usethis::use_github_action_check_release()
-#usethis::use_github_action_check_standard()
-#usethis::use_github_action_check_full()
-# Add action for PR
-#usethis::use_github_action_pr_commands()
-
-# Travis CI
-#usethis::use_travis()
-#usethis::use_travis_badge()
-
-# AppVeyor
-#usethis::use_appveyor()
-#usethis::use_appveyor_badge()
-
-# Circle CI
-#usethis::use_circleci()
-#usethis::use_circleci_badge()
-
-# Jenkins
-#usethis::use_jenkins()
-
-# GitLab CI
-#usethis::use_gitlab_ci()
+# usethis::use_github()
+#
+# # GitHub Actions
+# usethis::use_github_action()
+# # Chose one of the three
+# # See https://usethis.r-lib.org/reference/use_github_action.html
+# usethis::use_github_action_check_release()
+# usethis::use_github_action_check_standard()
+# usethis::use_github_action_check_full()
+# # Add action for PR
+# usethis::use_github_action_pr_commands()
+#
+# # Travis CI
+# usethis::use_travis()
+# usethis::use_travis_badge()
+#
+# # AppVeyor
+# usethis::use_appveyor()
+# usethis::use_appveyor_badge()
+#
+# # Circle CI
+# usethis::use_circleci()
+# usethis::use_circleci_badge()
+#
+# # Jenkins
+# usethis::use_jenkins()
+#
+# # GitLab CI
+# usethis::use_gitlab_ci()
 
 # You're now set! ----
 # go to dev/03_deploy.R

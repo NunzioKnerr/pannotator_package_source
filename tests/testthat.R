@@ -7,6 +7,6 @@
 # * https://testthat.r-lib.org/articles/special-files.html
 
 library(testthat)
-library(PannotatoR)
+library(pannotator)
 
-test_check("PannotatoR")
+test_check("pannotator")

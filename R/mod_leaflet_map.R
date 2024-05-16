@@ -7,197 +7,187 @@
 #' @noRd
 #'
 #' @importFrom shiny NS tagList
-#'
-#'
 mod_leaflet_map_ui <- function(id){
   ns <- NS(id)
+
+  # set options to allow for larger files to be loaded
   options(digits=12)
   options(shiny.maxRequestSize = 300*1024^2) #sets the file size to 300mb
-  #shinyWidgets::useSweetAlert()
-  #leaflet.extras::leafletExtrasDependencies
+
+
 
   tagList(
-    fileInput(ns("kmz_file"), "Load A .kmz File:", accept=c(".kmz"), placeholder="NEXT: Select a google earth (.kmz) file...") |> shinyhelper::helper(type="markdown", content="kmz_file_loader", icon = "question-circle"),
-    textOutput(ns("fileDetails")),
-    shinyWidgets::progressBar(id = ns("pb1"), value = 0, title = ""),
-    leaflet::leafletOutput(ns("mymap"), height = 750),
-    fileInput(ns("overlay_file"), "Load An Overlay:", accept = c(".kml"), placeholder="Use this to add an overlay (.kml only...)")#,
-  #textOutput(ns("position"))# for testing map pins
+
+    #this deletes the map layer by layerId
+tags$head(tags$script(HTML("
+  Shiny.addCustomMessageHandler(
+    'removeleaflet',
+    function(data){
+      var map = HTMLWidgets.find('#' + data.elid).getMap();
+      var layer = map._layers[data.layerId];
+      if(layer) {
+        map.removeLayer(layer);
+      }
+    }
+  )
+"))),
+
+#TODO need to look at moving scripts to external .js files
+# for putting JS externally
+#tags$head(tags$script(src = "handlers.js") ),
+
+fileInput(ns("kmz_file"), "Load A .kmz File:",
+          accept = c(".kmz"), placeholder = "SECOND: Select a google earth (.kmz) file..."
+          ) |> shinyhelper::helper(type = "markdown",
+                                   content = "kmz_file_loader_help",
+                                   icon = "question-circle"),
+                                   textOutput(ns("fileDetails")),
+ shinyWidgets::progressBar(id = ns("pb1"), value = 0, title = ""),
+leaflet::leafletOutput(ns("mymap"), height = 720),
+fileInput(ns("overlay_file"), "Load An Overlay:", accept = c(".kml"), placeholder = "Use this to add an overlay (.kml only...)"
+          ) |> shinyhelper::helper(type = "markdown",
+                                   content = "kml_overlay_loader_help",
+                                   icon = "question-circle"),
+                                   textOutput(ns("fileDetails"))
   )
 }
 
 #' leaflet_map Server Functions
+#'
 #' @noRd
 mod_leaflet_map_server <- function(id, r){
   moduleServer( id, function(input, output, session){
     ns <- session$ns
 
-    #shinyjs::disable("kmz_file")
-    shinyjs::hide("overlay_file")
+    #output$mymap <- loadBaseLeafletMap()
 
-    map <- observe({
+    #shinyjs::disable("kmz_file")
+    #shinyjs::hide("overlay_file")
+
+   observe({
       shinyWidgets::updateProgressBar(session = session, id = "pb1", value = 50, title = "Checking files in kmz & loading map.")
       files_extracted <- unzipKmz(input$kmz_file$datapath)
       shinyWidgets::updateProgressBar(session = session, id = "pb1", value = 75, title = "Loading image metadata")
       r$imgs_metadata <- load_image_metadata(app_sys("/app/www/files"))
       shinyWidgets::updateProgressBar(session = session, id = "pb1", value = 100, title = files_extracted)
+
       r$imgs_lst <- get_image_files(app_sys("/app/www/files"))
 
       fName <- paste0(app_sys("/app/www/doc.kml"))
       myKml <- readr::read_file(fName)
 
-      output$mymap <- loadBaseMap(kml=myKml, r=r)
-        shinyjs::show("overlay_file")
+      output$mymap <- loadBaseLeafletMap(kml=myKml)
+      #shinyjs::show("overlay_file")
+      golem::invoke_js("showid", "image_panel")
 
-     }) %>% bindEvent(input$kmz_file)
+    }) %>% bindEvent(input$kmz_file)
 
-#######################################################################
 
-    #add pin_id number for counter when pins dropped
-    r$pin_id <- 0
-    # this works on create new features using the leaflet.extras::drawtoolbar
+   observe({
+     #myOverlayMap <- readr::read_file(input$overlay_file$datapath)
+     addMapOverlay(input$overlay_file)
+
+     if(myEnv$config$showPopupAlerts == TRUE){
+     shinyWidgets::show_alert(
+       title = "Map Overlay Loaded!",
+       text = "Added the map overlay to the map panel.",
+       type = "info"
+     )
+     }
+   })%>% bindEvent(input$overlay_file)
+
+
+    #if the current image viewed changes
     observe({
+      #print("current image changed: mod_leaflet_map")
+      req(r$current_image_metadata)
+      addCurrentImageToMap()
 
-      #uses conversion to deal with polygons. had issue with number of decimal places
-      #TODO come back to this if we want to add polygons etc.
-      #  rm(feature)
-      #  rm(myMarker)
-      #  rm(geom)
-      #  feature <- input$mymap_draw_new_feature
-      #  #View(feature)
-      #
-      # myMarker <- geojsonsf::geojson_sf(jsonify::to_json(feature, unbox = T, digits=9))
-      # geom <- sf::st_as_text(myMarker$geometry, digits=9)
-      # options(digits=9)
-      # print(geom)
-      #
-      #  add_annotations_form(myActiveModules=r$active_modules, myModuleNumber=input$add_module, myFeatureType=feature$properties$feature_type, myGeometry=geom, mySpeciesName=0, myCoverEstimate=0, myImpactEstimate=-999)
+      previous_annotations_map <- check_for_annotations(r$user_annotations_data, r$current_image)
 
-    ##########################
+      if(nrow(previous_annotations_map > 1)){
+        #print("annotations already exist")
+          add_annotations_to_map()
 
-       req(r)
-       r$pin_id <- r$pin_id + 1
-       feature <- input$mymap_draw_new_feature
-       geom <- paste0(toupper(input$mymap_draw_new_feature$geometry$type)," (",input$mymap_draw_new_feature$geometry$coordinates[[1]], " ", input$mymap_draw_new_feature$geometry$coordinates[[2]],")")
-       #
-       add_annotations_form(myActiveModules=r$active_modules, myModuleNumber=paste0("pin_", r$pin_id), myFeatureType=input$mymap_draw_new_feature$properties$feature_type, myGeometry=geom, myDD1=NA, myDD2=NA, myDD3=NA, myDD4=NA)
+      }
 
-     #########################
-     #print(feature$properties$feature_type)
-     #print(feature$properties$`_leaflet_id`)
-     #print(feature$geometry$coordinates[[1]])
-     #print(feature$geometry$coordinates[[2]])
+    })%>% bindEvent(r$current_image)
 
-     #print(feature)
-     #print("############################")
-#     print(sf::st_coordinates(feature))
-#     nc$geom_str <- sf::st_as_text(feature)
-#     print(nc$geom_str)
-#     #POLYGON (130.8478, -25.29804, 130.8483, -25.29813, 130.8479, -25.29848, 130.8478, -25.29804)
-#       if (feature$properties$feature_type == "marker") {
-#         print("#######")
-#         print(feature$geometry$coordinates[[1]])
-#         print("#######")
-#         print(feature$geometry$coordinates[[2]])
-#
-#       }
-#     print("**********")
-#     #print(str(feature))
-#     #testing getting the geometry text to save in the rds
-#      test <- geojsonsf::geojson_sf(jsonify::to_json(feature, unbox = T))
-#      geom <- sf::st_as_text(test$geometry)
-#      print(geom)
-#      print(test)
-# #     str(test)
-# #     test$user <- r$user_name
-# #     saveRDS(test, file="test.rds")
-     })  %>% bindEvent(input$mymap_draw_new_feature)
-#
-#     #this works on edit from drawtoolbar
-#     observeEvent(input$mymap_draw_edited_features, {
-#       print("edited features")
-#     })
-#
-#     #loaded shape/polygon triggered when clicked
-# observeEvent(input$mymap_shape_click, {
-#   print("loaded pin click")
-# })
 
-# observeEvent(input$mymap_marker_click, {
-#   print("loaded pin click")
-# })
-#
-#    #triggered whin a loaded marker had been mouseouted.... should work
-     # observeEvent(input$mymap_marker_mouseout, {
-     #   test <- input$mymap_marker_mouseout
-     #   print(str(test))
-     #   print("marker mouseout")
-     # })
-
-    #added functionality to load overlay to the map
-    #if the current image viewed changes then centre on that
+    # triggered when item added using drawToolbar
     observe({
-      #myOverlayMap <- readr::read_file(input$overlay_file$datapath)
-      addMapOverlay(input$overlay_file)
+      feature <- input$mymap_draw_new_feature
+      req(feature, r$current_image)  # Make sure there is a new feature before proceeding
+      #print("mymap_draw_new_feature triggered: mod_leaflet_map")
 
-      shinyWidgets::show_alert(
-        title = "Map Overlay Loaded!",
-        text = "Added the map overlay to the map panel.",
-        type = "success"
-      )
-     })%>% bindEvent(input$overlay_file)
+      #utils::str(feature)
+      layerId <- feature$properties$layerId
+
+      clear_drawn_annotation_from_map(session, layerId)  # clear the item as it will be added back in the next step
+      # Generate a unique ID for the feature
+      myId <- gsub("\\.", "",format(Sys.time(), "%Y%m%d-%H%M%OS3"))
+      # Generate an ID based on the current date and time only if there's no existing ID
+      if (is.null(feature$properties$id)) {
+         feature$properties$id <- myId
+         feature$properties$feature_type <- paste0(feature$geometry$type, "-map")
+      }
+
+      # now add feature to reactive so it can trigger in other modules
+      r$new_leafletMap_item <- feature
+
+    }) %>% bindEvent(input$mymap_draw_new_feature)  # Make sure to bind to the drawing event
+
+    # triggered when item edited using drawToolbar
+    observe({
+      editedFeatures <- input$mymap_draw_edited_features
+      req(editedFeatures)  # Make sure there is an edited feature before proceeding
+      #utils::str(editedFeatures)
+      #str <- sprintf("Edited feature with layerId: %s", editedFeatures)
+      #print(str)
+
+      options(digits=9)
+      myMarker <- geojsonsf::geojson_sf(jsonify::to_json(editedFeatures, unbox = TRUE, digits=9))
+      geom <- sf::st_as_text(myMarker$geometry, digits=9)
+
+      myGeometry <- geom
+
+      r$user_annotations_data <- edit_annotation_data(myUserAnnotationsData = r$user_annotations_data, myId = editedFeatures$properties$layerId, myGeometry=myGeometry)
+      save_annotations(myAnnotations=r$user_annotations_data, myAnnotationFileName = r$user_annotations_file_name)
+
+    }) %>% bindEvent(input$mymap_draw_edited_features)  # Ensure the observe event triggers upon feature edits
+
+    # triggered to add a single item to the map from control form
+    observe({
+      #print("new map item: leaflet")
+      req(r$new_leafletMap_item)
+      add_annotations_to_map()
+    }) %>% bindEvent(r$new_leafletMap_item)
 
 
-    #r$current_image <- reactiveVal()
+    # remove_leafletMap_item
+    observe({
+      #print("remove_map_item: leaflet")
+      req(r$remove_leafletMap_item)
+      remove_map_item()
+    }) %>% bindEvent(r$remove_leafletMap_item)
 
-    #if the current image viewed changes then centre on that
-     observe({
-    #   #print("current image changed")
-       req(r$current_image_metadata)
-       addMapLayer(r=r)
-      })%>% bindEvent(r$current_image)
 
-    #####shinyFiles Way
-    # volumes <- c(Home = fs::path_home(), "R Installation" = R.home(), shinyFiles::getVolumes()())
-    # shinyFiles::shinyFileChoose(input, "kmzfile", roots = volumes, session = session)
+    # refresh_leaflet_item when user clicks ApplySettingsButton
+    observe({
+      #print("refresh_leaflet_item: map")
+      req(r$refresh_user_config, r$current_image)
+      fName <- paste0(app_sys("/app/www/doc.kml"))
+      myKml <- readr::read_file(fName)
+      output$mymap <- loadBaseLeafletMap(kml=myKml)
+      addCurrentImageToMap()
+      add_annotations_to_map()
+    }) %>% bindEvent(r$refresh_user_config)
 
-    #eventReactive(input$kmzfile, {
-    #test <- file_read(input$kmzfile, mode = "r", filter = NULL)
-    #d <- tempfile()
-    #archive::archive_extract(input$kmzfile$datapath, dir = d, files = NULL)
-    #list.files(d)
-    #utils::unzip(input$kmzfile$datapath, files = NULL, exdir = ".")
-    #})
-
-    # observeEvent(input$kmzfile,
-    #              output$zipped <- renderTable({
-    #                utils::unzip(input$kmzfile$datapath, list = FALSE, exdir = paste0(app_sys("/app/www"))
-    #              })
-    # )
-    # observe({
-    #   cat("\ninput$file value:\n\n")
-    #   print(input$kmzfile)
-    #  })
-    #
-    # ## print to browser
-    # output$filepaths <- renderPrint({
-    #   if (is.integer(input$kmzfile)) {
-    #     cat("No files have been selected (shinyFileChoose)")
-    #   } else {
-    #     shinyFiles::parseFilePaths(volumes, input$kmzfile)
-    #   }
-    # })
-
-    ##########
-
-    return(
-      list(kmzLoaded = reactive({input$kmz_file}))
-    )
   })
 }
 
 ## To be copied in the UI
-# mod_leaflet_map_ui("leaflet_map_1")
+# mod_leaflet_map_ui("leaflet_map")
 
 ## To be copied in the server
-# mod_leaflet_map_server("leaflet_map_1")
+# mod_leaflet_map_server("leaflet_map")

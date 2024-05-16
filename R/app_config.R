@@ -9,8 +9,10 @@
 #'
 #' @noRd
 app_sys <- function(...) {
-  system.file(..., package = "PannotatoR")
+  system.file(..., package = "pannotator")
 }
+
+
 #' Read App Config
 #'
 #' @param value Value to retrieve from the config file.
@@ -21,17 +23,17 @@ app_sys <- function(...) {
 #'
 #' @noRd
 get_golem_config <- function(
-    value,
-    config = Sys.getenv(
-      "GOLEM_CONFIG_ACTIVE",
-      Sys.getenv(
-        "R_CONFIG_ACTIVE",
-        "default"
-      )
-    ),
-    use_parent = TRUE,
-    # Modify this if your config file is somewhere else
-    file = app_sys("golem-config.yml")
+  value,
+  config = Sys.getenv(
+    "GOLEM_CONFIG_ACTIVE",
+    Sys.getenv(
+      "R_CONFIG_ACTIVE",
+      "default"
+    )
+  ),
+  use_parent = TRUE,
+  # Modify this if your config file is somewhere else
+  file = app_sys("golem-config.yml")
 ) {
   config::get(
     value = value,
@@ -41,13 +43,19 @@ get_golem_config <- function(
   )
 }
 
-#setting up all parameters for the app configuration here so they are loaded first.
+# r for all the reactive values
 r <- shiny::reactiveValues()
-r$config <- configr::read.config(app_sys("extdata/user-config.yml"))
-the <- new.env(parent = emptyenv())
-#the$volumes <- shinyFiles::getVolumes()
-the$config <- configr::read.config(app_sys("extdata/user-config.yml"))
+# track active annotations so we can remove them
+r$active_annotations <- reactiveVal(value = NULL)
+r$remove_leafletMap_item <- reactiveVal(value = NULL)
+r$remove_leaflet360_item <- reactiveVal(value = NULL)
+r$active_annotations_collapse <- NULL
+r$refresh_user_config <- NULL
 
-#print("app config loaded")
-#print(the$config$user$mapPanelWidth)
-globalVariables(c("imagefile", "feature_type", ".", "timestamp"))
+
+r$config <- configr::read.config(app_sys("extdata/user-config.yml"))
+
+myEnv <- new.env(parent = emptyenv())
+myEnv$config <- configr::read.config(app_sys("extdata/user-config.yml"))
+
+globalVariables(c("imagefile", "feature_type", "."))
