@@ -1,4 +1,4 @@
-showPopupAlerts: no
+showPopupAlerts: yes
 appTheme: cerulean
 mapPanelWidth: 4
 panoPanelWidth: 5

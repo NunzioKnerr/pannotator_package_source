@@ -1,9 +1,9 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-## PannotatoR Source Code
+## pannotator Source Code
 
-The Panospheric Image Annotator in R (PannotatoR) software package
+The Panospheric Image Annotator in R (pannotator) software package
 provides an easy-to-use interface for visualising 360 degree camera
 images on satellite imagery and annotating the images with data selected
 from user-defined drop-down menus. It’s designed for use in ecological
@@ -22,7 +22,7 @@ data.
 
 ## Installation
 
-The PannotatoR package makes extensive use of ExifTool by Phil Harvey
+The pannotator package makes extensive use of ExifTool by Phil Harvey
 ([Exiftool.org](https://exiftool.org/)). To make installation of
 ExifTool accessible in R there is a package exiftoolr that you must
 install by running the code below.
@@ -58,7 +58,7 @@ if (exists("check_for_ExifTool")) {
 ```
 
 You must also install the ‘remotes’ package which we will use to install
-the PannotatoR package.
+the pannotator package.
 
 ``` r
 check_for_package <-  system.file(package = "remotes")
@@ -90,26 +90,25 @@ if (check_for_package == "") {
 }
 ```
 
-You can now install the development version of the PannotatoR software.
+You can now install the development version of the pannotator software.
 
 ``` r
 library(remotes)
 
 # to install a local version use this code: 
 # edit the path to point to your loacal version of the package.
-#remotes::install_local(path = "path to the local file/PannotatoR_0.0.0.9000.tar.gz") 
+remotes::install_local(path = "pannotator_0.0.0.9001.tar.gz", dependencies = TRUE) 
 ```
 
 Finally, to run the application use the following code.
 
 ``` r
-library(PannotatoR) 
+library(pannotator) 
 run_app()
 ```
 
 If you want help you can find it using the following code:
 
 ``` r
-vignette('PannotatoR', package = 'PannotatoR')
-#> starting httpd help server ... done
+vignette('pannotator', package = 'pannotator')
 ```
