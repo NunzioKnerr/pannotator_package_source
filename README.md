@@ -1,28 +1,37 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-## pannotator Source Code
+## pannotator
 
 The Panospheric Image Annotator in R (pannotator) software package
 provides an easy-to-use interface for visualising 360 degree camera
 images on satellite imagery and annotating the images with data selected
-from user-defined drop-down menus. It’s designed for use in ecological
+from user-defined drop-down menus. It is designed for use in ecological
 and biogeographical research but can be used to extract data from any
-spatially explicit 360 degree camera imagery.
-
-The package was built using Golem and is web application that can run
-locally on any current computer system.
-
-See the instructions below to get everything installed an running.
-
-This vignette provides an overview of the functionality of the package,
-including setup and configuration, interface layout, image selection,
-drop-down menu specification, annotation of image files, and exporting
-data.
+spatially explicit 360 degree camera imagery. This vignette provides an
+overview of the functionality of the package, including setup and
+configuration, interface layout, image selection, drop-down menu
+specification, annotation of image files, and exporting data.
 
 ## Installation
 
-The pannotator package makes extensive use of ExifTool by Phil Harvey
+### Minimum Requirements
+
+To use this package, please ensure your system meets the following
+minimum requirements:
+
+- **R version**: 4.4.0 or higher
+
+- **RStudio version**: 2024.04.2+764 or higher
+
+- **Shiny version**: 1.9.1 or higher
+
+Additionally, ensure that all necessary system dependencies are
+installed for optimal performance.
+
+Below is some code to help ensure all dependencies are met:
+
+The software makes extensive use of ExifTool by Phil Harvey
 ([Exiftool.org](https://exiftool.org/)). To make installation of
 ExifTool accessible in R there is a package exiftoolr that you must
 install by running the code below.
@@ -51,6 +60,7 @@ check_for_ExifTool <- exiftoolr::exif_version(quiet = TRUE)
 # Install ExifTool if not found
 if (exists("check_for_ExifTool")) {
   print("ExifTool found on system")
+  exiftoolr::exif_version()
 } else {
   print("ExifTool not found ... installing now")   
   exiftoolr::install_exiftool()
@@ -78,7 +88,7 @@ below checks for that and if need be installs it using the remotes
 package.
 
 ``` r
-check_for_package <-  system.file(package = "gridlayout")
+check_for_package <- system.file(package = "gridlayout")
 
 print(check_for_package)
 # If not run the following code
@@ -97,18 +107,34 @@ library(remotes)
 
 # to install a local version use this code: 
 # edit the path to point to your loacal version of the package.
-remotes::install_local(path = "pannotator_0.0.0.9001.tar.gz", dependencies = TRUE) 
+remotes::install_local(path = "pannotator_0.0.0.9001.tar.gz", dependencies = TRUE)  
 ```
 
-Finally, to run the application use the following code.
+## Running the Package
+
+To run the application use the following code.
 
 ``` r
-library(pannotator) 
+
+library(pannotator)
 run_app()
 ```
+
+Once run, the above code will popup a window from RStudio with the shiny
+application inside it. You can either use the package inside this window
+or click the ‘Open in Browser’ button to open it in the default web
+browser. Alternatively one could type the url listed next to this button
+(eg. ‘http: //127.0.0.1:XXXXX’) into the web browser of your choice and
+it will load from there.
+
+We recommend running it in a web browser as they generally have better
+functionality (e.g., zoom levels, font sizes etc.).
+
+## Help Vignette
 
 If you want help you can find it using the following code:
 
 ``` r
+
 vignette('pannotator', package = 'pannotator')
 ```

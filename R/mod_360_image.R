@@ -18,8 +18,7 @@ mod_360_image_ui <- function(id){
               position:fixed;
               top: calc(50% - 25px);;
               left: calc(50% - 100px);;
-            }
-           "
+            }"
         )
       )
     ),
@@ -68,11 +67,11 @@ mod_360_image_server <- function(id, r){
     observe({
       req(r$imgs_lst)
       #changed this to automatcally select the first image as the pin dropping needs it to have one
-      shinyWidgets::updatePickerInput(session = session, inputId = "img_dd", choices = r$imgs_lst, options = list(title = "Now Select an image to annotate it."))
+      shinyWidgets::updatePickerInput(session = session, inputId = "img_dd", choices = r$imgs_lst, selected = r$imgs_lst[1], options = list(title = "Now Select an image to annotate it."))
       if(myEnv$config$showPopupAlerts == TRUE){
        shinyWidgets::show_alert(
          title = "ALMOST SET.. Now annotate the images",
-         text = "Select from the dropdown in the middle and use the buttons on the right to start annotating.",
+         text = "You can change the image using the dropdown in the middle and use the buttons on the right to start annotating.",
          type = "info"
        )
       }
@@ -135,7 +134,7 @@ mod_360_image_server <- function(id, r){
 
                    # Additional button for exporting polygons as images
                    if (!toggleState() && !is.null(r$current_annotation_360polygons) && nrow(r$current_annotation_360polygons) > 0) {
-                     shinyFiles::shinyDirButton(id=ns("exportPolygonsAsImages"), label='Export Cropped Polygon Images', title='Please select a folder to export the cropped images into :)',icon=icon("download"), multiple=FALSE, viewtype="list", style = "margin-right: 5px; width: 95%;")
+                     shinyFiles::shinyDirButton(id=ns("exportPolygonsAsImages"), label='Export Cropped Polygon Images', title='Please select a folder to export the cropped images into :)', icon=icon("download"), multiple=FALSE, viewtype="list", style = "margin-right: 5px; width: 95%;")
                      }
                  )
       )
@@ -148,23 +147,21 @@ mod_360_image_server <- function(id, r){
       if(length(r$current_annotation_360polygons) < 0) {
         #print( "no polygons to export")
       }
-      #TODO come back to this and figure out proper volumes (disks to show)
-      #volumes <- c(Documents = fs::path_home(), "R Installation" = R.home(),shinyFiles::getVolumes()())
+
       # Determine the path to the Documents folder consistently across platforms
-      home_dir <- fs::path_home()
-      documents_dir <- file.path(home_dir, "Documents")
+      #home_dir <- fs::path_home()
+      #documents_dir <- file.path(home_dir)
+      #volumes <- c(Documents = fs::path_home(), "R Installation" = R.home(),shinyFiles::getVolumes()())
 
       # Create volumes list containing only the Documents folder
-      volumes <- c(Documents = documents_dir, shinyFiles::getVolumes()())
+      volumes <- c(shinyFiles::getVolumes()())
 
       if (is.integer(input$exportPolygonsAsImages)) {
         cat("No directory has been selected (shinyDirChoose)")
-        shinyFiles::shinyDirChoose(input,"exportPolygonsAsImages",roots = volumes, session = session, restrictions = system.file(package = "base"), defaultPath = "", defaultRoot = NULL, allowDirCreate = TRUE)
+        shinyFiles::shinyDirChoose(input,"exportPolygonsAsImages", roots = volumes, session = session, defaultPath = "", defaultRoot = NULL, allowDirCreate = TRUE)
        } else {
 
         save_annotations(myAnnotations=r$user_annotations_data, myAnnotationFileName = r$user_annotations_file_name)
-
-     #TODO possibly add a wait icon progressbar on export cropped images??
 
      annotations_export_dir <- shinyFiles::parseDirPath(volumes, input$exportPolygonsAsImages)
      #print(annotations_export_dir)
@@ -200,7 +197,7 @@ mod_360_image_server <- function(id, r){
     # triggered when the current image changes
     observe({
       #print("r$current_image changed: mod_360_image")
-      req(r$current_image)
+      req(r$imgs_lst, r$current_image)
       output$leaflet360 <- addCurrentImageToLeaflet360()
 
       #TODO check if this fixes the current_annotations
@@ -213,6 +210,15 @@ mod_360_image_server <- function(id, r){
         #print("annotations already exist")
         add_annotations_to_360()
       }
+
+      # code for auto updating dropdown if leaflet_map is clicked
+      shinyWidgets::updatePickerInput(
+         session = session,
+         inputId = "img_dd",
+         choices = r$imgs_lst,
+         selected = r$current_image,  # Automatically select the current image
+         options = list(title = "Now Select an image to annotate it.")
+       )
 
     }) %>% bindEvent(r$current_image)
 

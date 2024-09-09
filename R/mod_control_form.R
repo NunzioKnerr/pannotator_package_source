@@ -115,7 +115,10 @@ mod_control_form_ui <- function(id){
                    label = "App Theme",
                    width = "95%",
                    selected = myEnv$config$appTheme,
-                   choices = shinythemes:::allThemes(),
+                   choices = allThemes <- c("cerulean", "cosmo", "cyborg", "darkly",
+                               "flatly", "journal", "lumen", "paper", "readable", "sandstone", "simplex",
+                               "slate", "spacelab", "superhero",
+                               "united", "yeti"),#shinythemes:::allThemes(),
                    selectize = FALSE
                  ),
               tags$script(
@@ -590,8 +593,11 @@ mod_control_form_ui <- function(id){
                 fill = TRUE,
                 padding = 10,
                 max_height = "790px",
-                span("This was developed to assist in the annotation of panospheric imagery collected during vegetation surveys."),
-                span("It makes extensive use of:"),
+                div(style = "display: flex; justify-content: space-between; align-items: center;",
+                    tags$img(src = "www/pannotator_hex_icon.png", height = "60px", width = "52px")
+                    ),
+                span("This software was developed to assist in the annotation of panospheric imagery collected during vegetation surveys.  It can be used to annotate anything visible in panosheric imagery collected from a variety of sources."),
+                span("This software makes extensive use of:"),
                 tags$a(href="https://exiftool.org/", "ExifTool"),
                 span("By Phil Harvey"),
                 span("and:"),
@@ -641,7 +647,7 @@ mod_control_form_ui <- function(id){
 
     tags$div(style="align-content:end",
     #actionButton(inputId = ns("save_annotations"), label = "Save All Records", icon = icon("save"), style = "margin-bottom: 5px;"),
-    shinyFiles::shinyDirButton(id=ns("export_annotations"), label='Export All Records', title='Please select a folder to export the annotations into :)',icon=icon("download"), multiple=FALSE, viewtype="list", style = "margin-bottom: 5px;"),
+    shinyFiles::shinyDirButton(id=ns("export_annotations"), label='Export All Records', title='Please select a folder to export the annotations into :)', icon=icon("download"), multiple=FALSE, viewtype="list", style = "margin-bottom: 5px;"),
 
     actionButton(inputId = ns("add_whole_image_annotation"), label = "Add A Whole Image Annotation", icon = icon("plus"), style = "margin-bottom: 5px;"),
     #actionButton(inputId = ns("remove_all_annotations_for_image"), label = "Delete All Annotations For Image", icon = icon("trash")),
@@ -680,7 +686,7 @@ mod_control_form_server <- function(id, r){
     if(myEnv$config$showPopupAlerts == TRUE){
       shinyWidgets::show_alert(
         title = "Configure The App",
-        text = "Use the cog icon (top right) to set your custom user files before you start annotating!!!",
+        text = "Use the cog icon (top right) to set your custom user files before you start annotating!",
         type = "info"
       )
     }
@@ -893,7 +899,7 @@ mod_control_form_server <- function(id, r){
         session = session,
         inputId = ns("confirm_change"),
         title = "Resize Panels?",
-        text = "Are you sure you want to change the panels layout? The app will reload",
+        text = "Are you sure you want to change the panels layout? The page will reload",
         type = "warning",
         btn_labels = c("Cancel", "Confirm"),
         btn_colors = c("#B00225", "#2A52BE"),
@@ -1382,16 +1388,16 @@ mod_control_form_server <- function(id, r){
     #export annotations button
     observe({
       req(r$user_annotations_file_name,  r$user_annotations_data)
-      home_dir <- fs::path_home()
-      documents_dir <- file.path(home_dir, "Documents")
+      #home_dir <- fs::path_home()
+      #documents_dir <- file.path(home_dir)
+      #volumes <- c(Documents = fs::path_home(), "R Installation" = R.home(), shinyFiles::getVolumes()())
 
       # Create volumes list containing only the Documents folder
-      volumes <- c(Documents = documents_dir, shinyFiles::getVolumes()())
-      #volumes <- c(Documents = fs::path_home(), "R Installation" = R.home(),shinyFiles::getVolumes()())
+      volumes <- c(shinyFiles::getVolumes()())
 
       if (is.integer(input$export_annotations)) {
         cat("No directory has been selected (shinyDirChoose)")
-        shinyFiles::shinyDirChoose(input,"export_annotations",roots = volumes, session = session, restrictions = system.file(package = "base"))
+        shinyFiles::shinyDirChoose(input,"export_annotations", roots = volumes, session = session)
       } else {
         annotations_export_dir <- shinyFiles::parseDirPath(volumes, input$export_annotations)
         annotations_export_full_path_rds <- paste0(annotations_export_dir,"/", r$user_name, "s_annotations.rds")

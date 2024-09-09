@@ -12,8 +12,7 @@ mod_leaflet_map_ui <- function(id){
 
   # set options to allow for larger files to be loaded
   options(digits=12)
-  options(shiny.maxRequestSize = 300*1024^2) #sets the file size to 300mb
-
+  options(shiny.maxRequestSize = 5000*1024^2) #sets the file size to 5000mb
 
 
   tagList(
@@ -82,7 +81,6 @@ mod_leaflet_map_server <- function(id, r){
 
     }) %>% bindEvent(input$kmz_file)
 
-
    observe({
      #myOverlayMap <- readr::read_file(input$overlay_file$datapath)
      addMapOverlay(input$overlay_file)
@@ -111,7 +109,7 @@ mod_leaflet_map_server <- function(id, r){
 
       }
 
-    })%>% bindEvent(r$current_image)
+    }) %>% bindEvent(r$current_image)
 
 
     # triggered when item added using drawToolbar
@@ -121,6 +119,7 @@ mod_leaflet_map_server <- function(id, r){
       #print("mymap_draw_new_feature triggered: mod_leaflet_map")
 
       #utils::str(feature)
+      #print(feature)
       layerId <- feature$properties$layerId
 
       clear_drawn_annotation_from_map(session, layerId)  # clear the item as it will be added back in the next step
@@ -170,6 +169,15 @@ mod_leaflet_map_server <- function(id, r){
       req(r$remove_leafletMap_item)
       remove_map_item()
     }) %>% bindEvent(r$remove_leafletMap_item)
+
+    # observe clicks on the map (kml) loaded when someone clicks on a yellow marker
+    observe({
+      click <- input$mymap_geojson_click
+      #print("geojson marker clicked")
+      #print(click$properties$name)
+      r$current_image <- paste0(click$properties$name)
+      r$current_image_metadata <- get_image_metadata(r$imgs_metadata, r$current_image)
+    }) %>% bindEvent(input$mymap_geojson_click)
 
 
     # refresh_leaflet_item when user clicks ApplySettingsButton

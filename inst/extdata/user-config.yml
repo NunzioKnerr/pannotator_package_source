@@ -1,8 +1,8 @@
 showPopupAlerts: yes
 appTheme: cerulean
-mapPanelWidth: 4
+mapPanelWidth: 5
 panoPanelWidth: 5
-formPanelWidth: 3
+formPanelWidth: 2
 mapPanelSource: Esri.WorldImagery
 mapIconColour: green
 mapMarkerColour: white

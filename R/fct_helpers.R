@@ -8,14 +8,18 @@
 #'
 #'
 # TODO
-# check themes on all shinyWidgets,
-# add measure tool to mapping panel - DONE
+# fix panellum displaying error on first load without image option - (DONE)
+# fix purple image (current image) staying when new new kmz - (DONE)
+# look at setting bounds for drawing on 360 images as currently one can draw polyons outside the pixels of the image
+# check latitude and longitude have - for S etc...(DONE)
+# check themes on all shinyWidgets - switching to bslib?
 # warning popup on change of lookups in the settings
-# possibly add a wait icon progressbar on export cropped images??
-# fix icon on whole image icon not showing
+# possibly add a wait icon progressbar on export cropped images - (DONE)
+# fix icon on whole image icon not showing (DONE)
 # fix stroke on polygons not show when stroke unchecked
 # fix settings panel horizontal scroll bar from appearing
-# fix settings button
+# make data load lowercase jpg and JPG when loading image metedata.
+# move custom js to handlers.js file
 # add stoke /fill options for overlay maps in settings panel
 # add dashed line option for polygons
 # add warning popup when changing lookup settings
@@ -24,19 +28,22 @@
 # add function for drawing overlay to PNG FOR PANNELLUM (STARTED),
 # add overlays to panellum
 # add dashed line option to polygons
-# add export cropped polygons from image (DONE)
-# add geocode metadata to exported images (DONE)
+# add export cropped polygons from image - (DONE)
+# check white space around exported images from crops
+# add geocode metadata to exported images - (DONE)
 # add option to export png's and jpgs
-# add functions/ button to delete all annotations for image.
+# add functions/button to delete all annotations for image.
 # add remove overlay button
 # add zoom to overlay button
 # zoom to extents of polygons drawn on mape when r$current_image changes
-# add help rmds,
+# add help rmds - (DONE),
 # write unit test functions
 # add 'restore defaults' button in settings for
-# add text in control form for current image filename (DONE)
-# make kmz browse progress bars hide.
+# add text in control form for current image filename - (DONE)
+# make kmz browse progress bars hide / switch to progressbar on exports.
+# have warnings popup to reload page when changing username lookup file in settings
 # fix it so that the lookups default and work even if someone deletes the files from the system.
+# switch to |> instead of %>% pipes
 # TODO
 
 
@@ -488,7 +495,8 @@ addMapOverlay <- function(overlayMap){
 loadBaseLeafletMap <- function(kml="") {
   mymap <- leaflet::renderLeaflet({
     #print("loadBaseLeafletMap called")
-    leaflet::leaflet(options = leaflet::leafletOptions(minZoom = 1, maxZoom = 17)) %>%
+    leaflet::leaflet(options = leaflet::leafletOptions(minZoom = 2, maxZoom = 18)) %>%
+      leaflet::setMaxBounds(lng1 = -180, lat1 = -90, lng2 = 180, lat2 = 90) %>%
       leaflet::addProviderTiles(eval(parse(text=paste0("leaflet::providers$", myEnv$config$mapPanelSource)))) %>%
       leaflet.extras::addKML(kml, layerId = "my_kml", group ="360-Images" ,  markerType = "circleMarker",
                              stroke = FALSE, fillColor = "yellow", fillOpacity = 1,
@@ -509,7 +517,9 @@ loadBaseLeafletMap <- function(kml="") {
                                                      ) %>%
       leafpm::removePmToolbar()  %>%
       leaflet::addLayersControl(overlayGroups = c("360-Images", "Overlay", "Whole-Image-Annotations", "Map-Annotations"), options = leaflet::layersControlOptions(collapsed = TRUE))
-  })
+
+   })
+
   return(mymap)
 }
 
@@ -523,6 +533,7 @@ addCurrentImageToMap <- function(){
 
   myMapProxy <- leaflet::leafletProxy("mymap") %>%
     leaflet::clearMarkers() %>%
+    leaflet::removeMarker(layerId = "currentImage") %>% # remove the purple cirlce marker
     leaflet::clearGroup("Map-Annotations") %>%
     leaflet::clearGroup("Whole-Image-Annotations") %>%
     leaflet::setView(lng = long, lat = lat, zoom=16) %>%
@@ -541,7 +552,8 @@ addCurrentImageToMap <- function(){
                                                              allowSelfIntersection = FALSE, draggable = FALSE,
                                                              preventMarkerRemoval = FALSE, preventVertexEdit = FALSE)
     ) %>%
-    leaflet::addMeasure(position = "topright",  primaryLengthUnit = "meters", primaryAreaUnit = "sqmeters", activeColor = "#3D535D", completedColor = "#7D4479")
+    leaflet::addMeasure(position = "topright",  primaryLengthUnit = "meters", primaryAreaUnit = "sqmeters", activeColor = "#3D535D", completedColor = "#7D4479") %>%
+    leaflet::setMaxBounds(lng1 = -180, lat1 = -90, lng2 = 180, lat2 = 90)
 
   return(myMapProxy)
 }
@@ -957,7 +969,7 @@ create_cropped_polygons_from_360_images <- function(annotations_export_dir){
       #print(cropped_image_path)
 
       #ggplot2::ggsave(cropped_image_path, plot = p, width = plot_width, height = plot_height, units = "px", dpi = 96, limitsize = FALSE, bg = "transparent")
-       grDevices::png(filename = cropped_image_path, units = "px", type = "cairo-png", res = 96)
+       grDevices::png(filename = cropped_image_path, units = "px", type = "cairo-png", bg = "transparent", res = 96)
        print(p)  # This will render the ggplot object to the PNG device
        grDevices::dev.off()
 

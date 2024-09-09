@@ -33,7 +33,7 @@ get_golem_config <- function(
   ),
   use_parent = TRUE,
   # Modify this if your config file is somewhere else
-  file = app_sys("golem-config.yml")
+  file = app_sys('inst/golem-config.yml')
 ) {
   config::get(
     value = value,
@@ -52,10 +52,11 @@ r$remove_leaflet360_item <- reactiveVal(value = NULL)
 r$active_annotations_collapse <- NULL
 r$refresh_user_config <- NULL
 
-
+#r$config <- configr::read.config(here::here("inst/extdata/user-config.yml.test"))
 r$config <- configr::read.config(app_sys("extdata/user-config.yml"))
 
 myEnv <- new.env(parent = emptyenv())
+#myEnv$config <- configr::read.config(here::here("inst/extdata/user-config.yml.test"))
 myEnv$config <- configr::read.config(app_sys("extdata/user-config.yml"))
 
 globalVariables(c("imagefile", "feature_type", "."))

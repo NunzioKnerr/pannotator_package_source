@@ -30,7 +30,8 @@ usethis::use_package("ggplot2")
 usethis::use_package("grDevices")
 usethis::use_package("jpeg")
 usethis::use_package("stringr")
-usethis::use_package("fs")
+#usethis::use_package("fs")
+#usethis::use_package("here")
 usethis::use_package("shinyFiles")
 usethis::use_package("readr")
 usethis::use_package("exiftoolr")
@@ -56,9 +57,9 @@ golem::add_fct("helpers", with_test = TRUE)
 ## External resources
 ## Creates .js and .css files at inst/app/www
 golem::add_js_file("script")
-golem::add_js_handler("handlers")
-golem::add_css_file("custom")
-golem::add_sass_file("custom")
+#golem::add_js_handler("handlers")
+#golem::add_css_file("custom")
+#golem::add_sass_file("custom")
 
 ## Add internal datasets ----
 ## If you have data in your package
