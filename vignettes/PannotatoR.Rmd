@@ -24,12 +24,13 @@ To run the application use the following code.
 
 ```{r setup, echo=TRUE, eval=FALSE, results='hold', warning=FALSE, include=TRUE}
 library(pannotator)
+
+options(shiny.port = httpuv::randomPort(), shiny.launch.browser = .rs.invokeShinyWindowExternal)
+
 run_app()
 ```
 
-Once run, the above code will popup a window from RStudio with the shiny application inside it. You can either use the package inside this window or click the 'Open in Browser' button to open it in the default web browser. Alternatively one could type the url listed next to this button (eg. 'http: //127.0.0.1:XXXXX') into the web browser of your choice and it will load from there.
-
-We recommend running it in a web browser as they generally have better functionality (e.g., zoom levels, font sizes etc.).
+Once run, the above code will popup a browser window with the shiny application inside it.
 
 ## User Interface Layout
 

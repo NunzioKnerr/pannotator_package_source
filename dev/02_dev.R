@@ -17,11 +17,17 @@
 ## Amend DESCRIPTION with dependencies read from package code parsing
 ## install.packages('attachment') # if needed.
 attachment::att_amend_desc()
+
 usethis::use_package("leaflet")
 usethis::use_package("leaflet.extras")
 usethis::use_package("leafpm")
+usethis::use_package("geojsonsf")
+usethis::use_package("htmlwidgets")
 usethis::use_package("shinyhelper")
 usethis::use_package("shinyWidgets")
+usethis::use_package("jsonify")
+usethis::use_package("jsonlite")
+usethis::use_package("sf")
 usethis::use_package("shinyjs")
 usethis::use_package("stringr")
 usethis::use_package("bslib")
@@ -30,8 +36,6 @@ usethis::use_package("ggplot2")
 usethis::use_package("grDevices")
 usethis::use_package("jpeg")
 usethis::use_package("stringr")
-#usethis::use_package("fs")
-#usethis::use_package("here")
 usethis::use_package("shinyFiles")
 usethis::use_package("readr")
 usethis::use_package("exiftoolr")
@@ -45,21 +49,22 @@ usethis::use_pipe()
 
 ## Add modules ----
 ## Create a module infrastructure in R/
-golem::add_module(name = "control_form", with_test = TRUE) # Name of the module
-golem::add_module(name = "leaflet_map", with_test = TRUE) # Name of the module
-golem::add_module(name = "360_image", with_test = TRUE)
+golem::add_module(name = "control_form", with_test = FALSE, open = FALSE) # Name of the module
+golem::add_module(name = "leaflet_map", with_test = FALSE, open = FALSE) # Name of the module
+golem::add_module(name = "360_image", with_test = FALSE, open = FALSE)
 
 ## Add helper functions ----
 ## Creates fct_* and utils_*
-golem::add_fct("helpers", with_test = TRUE)
+golem::add_fct("helpers", with_test = TRUE, open = FALSE)
 #golem::add_utils("helpers", with_test = TRUE)
 
 ## External resources
 ## Creates .js and .css files at inst/app/www
-golem::add_js_file("script")
-#golem::add_js_handler("handlers")
-#golem::add_css_file("custom")
-#golem::add_sass_file("custom")
+# golem::add_js_file("script")
+# golem::add_js_handler("handlers")
+# golem::add_css_file("custom")
+# golem::add_sass_file("custom")
+# golem::add_any_file("file.json")
 
 ## Add internal datasets ----
 ## If you have data in your package
@@ -68,6 +73,7 @@ golem::add_js_file("script")
 ## Tests ----
 ## Add one line by test you want to create
 #usethis::use_test("app")
+#shinytest2::use_shinytest2_test()
 
 # Documentation
 
@@ -98,14 +104,6 @@ covrpage::covrpage()
 # usethis::use_github_action_check_full()
 # # Add action for PR
 # usethis::use_github_action_pr_commands()
-#
-# # Travis CI
-# usethis::use_travis()
-# usethis::use_travis_badge()
-#
-# # AppVeyor
-# usethis::use_appveyor()
-# usethis::use_appveyor_badge()
 #
 # # Circle CI
 # usethis::use_circleci()

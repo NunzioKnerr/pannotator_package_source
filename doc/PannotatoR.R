@@ -6,6 +6,9 @@ knitr::opts_chunk$set(
 
 ## ----setup, echo=TRUE, eval=FALSE, results='hold', warning=FALSE, include=TRUE----
 #  library(pannotator)
+#  
+#  options(shiny.port = httpuv::randomPort(), shiny.launch.browser = .rs.invokeShinyWindowExternal)
+#  
 #  run_app()
 
 ## ----echo=TRUE, eval=FALSE, results='hold', warning=FALSE, include=TRUE-------

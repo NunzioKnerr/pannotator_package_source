@@ -18,10 +18,19 @@ knitr::opts_chunk$set(
 
 The Panospheric Image Annotator in R (pannotator) software package provides an easy-to-use interface for visualising 360-degree camera images on satellite imagery and annotating the images with data selected from user-defined dropdown menus. It also allows the user to draw points, rectangles and complex polygons on 360-degree images and satellite or other map images, export geolocation and other annotation data for these geometries, and export geocoded cropped sub-images (patches) for use in other applications. It is designed for use in ecological and biogeographical research but can be used to extract data from any spatially explicit 360 degree camera imagery. This vignette provides an overview of the functionality of the package, including setup and configuration, interface layout, image selection, dropdown menu specification, annotation of image files, cropping sub-images and exporting data.
 
+## Running the Package
+
+To run the application use the following code.
+
 ```{r setup, echo=TRUE, eval=FALSE, results='hold', warning=FALSE, include=TRUE}
 library(pannotator)
+
+options(shiny.port = httpuv::randomPort(), shiny.launch.browser = .rs.invokeShinyWindowExternal)
+
 run_app()
 ```
+
+Once run, the above code will popup a browser window with the shiny application inside it.
 
 ## User Interface Layout
 

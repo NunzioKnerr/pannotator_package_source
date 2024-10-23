@@ -27,29 +27,29 @@ mod_360_image_ui <- function(id){
       style = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;",
       # Modify selectInput style to include margin on the right for spacing
       div(shinyWidgets::pickerInput(
-          inputId =  ns("img_dd"),
-          label = "Image To Annotate:",
-          choices = "",
-          multiple = FALSE,
-          width = "100%",
-          #selected = 1
-          options = list(title = "THIRD: Select an image to annotate....")
-        ), #%>% shinyhelper::helper(type = "markdown", content = "image_loader", icon = "question-circle"),
-          style = "flex-grow: 1; margin-right: 5px;"), # Adjusted for spacing and flexible width
+        inputId =  ns("img_dd"),
+        label = "Image To Annotate:",
+        choices = "",
+        multiple = FALSE,
+        width = "100%",
+        #selected = 1
+        options = list(title = "THIRD: Select an image to annotate....")
+      ), #%>% shinyhelper::helper(type = "markdown", content = "image_loader", icon = "question-circle"),
+      style = "flex-grow: 1; margin-right: 5px;"), # Adjusted for spacing and flexible width
       shiny::uiOutput(ns("toggleButton"), style = "align-self: flex-end; margin-bottom: 8px; width: 95%;")
     ),
 
     # Container to hold both the Leaflet output and the iframe
     div(style = "position: relative; height: 750px;", # Ensuring container has a defined height
-         div(id = ns("leaflet360Container"),
-              style = "position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 100;",
-              leaflet::leafletOutput(ns("leaflet360"), height = "100%")
-          )
+        div(id = ns("leaflet360Container"),
+            style = "position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 100;",
+            leaflet::leafletOutput(ns("leaflet360"), height = "100%")
+        )
         ,
         div(id = ns("panoContainer"),
             style = "position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 100;",
-        # # Iframe output
-        uiOutput(ns("pano_iframe"), style = "height: 100%;")
+            # # Iframe output
+            uiOutput(ns("pano_iframe"), style = "height: 100%;")
         )
     ),
 
@@ -69,11 +69,11 @@ mod_360_image_server <- function(id, r){
       #changed this to automatcally select the first image as the pin dropping needs it to have one
       shinyWidgets::updatePickerInput(session = session, inputId = "img_dd", choices = r$imgs_lst, selected = r$imgs_lst[1], options = list(title = "Now Select an image to annotate it."))
       if(myEnv$config$showPopupAlerts == TRUE){
-       shinyWidgets::show_alert(
-         title = "ALMOST SET.. Now annotate the images",
-         text = "You can change the image using the dropdown in the middle and use the buttons on the right to start annotating.",
-         type = "info"
-       )
+        shinyWidgets::show_alert(
+          title = "ALMOST SET.. Now annotate the images",
+          text = "You can change the image using the dropdown in the middle and use the buttons on the right to start annotating.",
+          type = "info"
+        )
       }
 
     }) %>% bindEvent(r$imgs_lst)
@@ -135,7 +135,7 @@ mod_360_image_server <- function(id, r){
                    # Additional button for exporting polygons as images
                    if (!toggleState() && !is.null(r$current_annotation_360polygons) && nrow(r$current_annotation_360polygons) > 0) {
                      shinyFiles::shinyDirButton(id=ns("exportPolygonsAsImages"), label='Export Cropped Polygon Images', title='Please select a folder to export the cropped images into :)', icon=icon("download"), multiple=FALSE, viewtype="list", style = "margin-right: 5px; width: 95%;")
-                     }
+                   }
                  )
       )
     })
@@ -159,21 +159,21 @@ mod_360_image_server <- function(id, r){
       if (is.integer(input$exportPolygonsAsImages)) {
         cat("No directory has been selected (shinyDirChoose)")
         shinyFiles::shinyDirChoose(input,"exportPolygonsAsImages", roots = volumes, session = session, defaultPath = "", defaultRoot = NULL, allowDirCreate = TRUE)
-       } else {
+      } else {
 
         save_annotations(myAnnotations=r$user_annotations_data, myAnnotationFileName = r$user_annotations_file_name)
 
-     annotations_export_dir <- shinyFiles::parseDirPath(volumes, input$exportPolygonsAsImages)
-     #print(annotations_export_dir)
+        annotations_export_dir <- shinyFiles::parseDirPath(volumes, input$exportPolygonsAsImages)
+        #print(annotations_export_dir)
 
-     #added progressIndicator in function
-     create_cropped_polygons_from_360_images(annotations_export_dir)
+        #added progressIndicator in function
+        create_cropped_polygons_from_360_images(annotations_export_dir)
 
-     #export_success <-  create_cropped_polygons_from_360_images(annotations_export_dir)
+        #export_success <-  create_cropped_polygons_from_360_images(annotations_export_dir)
 
-      # if(export_success == "success"){
-      #   print("the export was successful")
-      # }
+        # if(export_success == "success"){
+        #   print("the export was successful")
+        # }
 
         shinyWidgets::show_alert(
           title = "Export Successful!",
@@ -213,12 +213,12 @@ mod_360_image_server <- function(id, r){
 
       # code for auto updating dropdown if leaflet_map is clicked
       shinyWidgets::updatePickerInput(
-         session = session,
-         inputId = "img_dd",
-         choices = r$imgs_lst,
-         selected = r$current_image,  # Automatically select the current image
-         options = list(title = "Now Select an image to annotate it.")
-       )
+        session = session,
+        inputId = "img_dd",
+        choices = r$imgs_lst,
+        selected = r$current_image,  # Automatically select the current image
+        options = list(title = "Now Select an image to annotate it.")
+      )
 
     }) %>% bindEvent(r$current_image)
 
@@ -275,7 +275,7 @@ mod_360_image_server <- function(id, r){
 
     # triggered to add a single item to the 360 from control form
     observe({
-      print("new 360 item: leaflet360")
+      #print("new 360 item: leaflet360")
       #print(r$new_leafletMap_item)
 
       add_annotations_to_360()
@@ -283,12 +283,6 @@ mod_360_image_server <- function(id, r){
       #TODO NOT SURE THIS IS THE CORRECT PLACE TO HAVE THIS
       #call the function to add the overlay for an equirectangular
       #image to be drawn and generate a png to load in panellum
-      #TODO still needs doing not quite working yet
-      # has problem with collapse now and double triggering
-      #add_overlays_to_image_for_pannellum()
-
-      #test for cropping polygons and outputing seperate files
-      #create_cropped_polygons_from_360_images()
 
     }) %>% bindEvent(r$new_leaflet360_item)
 

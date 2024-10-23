@@ -1,6 +1,17 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
+# `{pannotator}`
+
+<!-- badges: start -->
+
+[![Lifecycle:
+experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+[![Codecov test
+coverage](https://codecov.io/gh/NunzioKnerr/pannotator/graph/badge.svg)](https://app.codecov.io/gh/NunzioKnerr/pannotator)
+
+<!-- badges: end -->
+
 ## pannotator
 
 The Panospheric Image Annotator in R (pannotator) software package
@@ -115,26 +126,20 @@ remotes::install_local(path = "pannotator_0.0.0.9001.tar.gz", dependencies = TRU
 To run the application use the following code.
 
 ``` r
-
 library(pannotator)
+
+options(shiny.port = httpuv::randomPort(), shiny.launch.browser = .rs.invokeShinyWindowExternal)
+
 run_app()
 ```
 
-Once run, the above code will popup a window from RStudio with the shiny
-application inside it. You can either use the package inside this window
-or click the ‘Open in Browser’ button to open it in the default web
-browser. Alternatively one could type the url listed next to this button
-(eg. ‘http: //127.0.0.1:XXXXX’) into the web browser of your choice and
-it will load from there.
-
-We recommend running it in a web browser as they generally have better
-functionality (e.g., zoom levels, font sizes etc.).
+Once run, the above code will popup a browser window with the shiny
+application inside it.
 
 ## Help Vignette
 
 If you want help you can find it using the following code:
 
 ``` r
-
 vignette('pannotator', package = 'pannotator')
 ```
