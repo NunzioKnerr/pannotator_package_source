@@ -8,6 +8,7 @@
 #'
 #'
 # TODO
+# need to look at all usernames being changed on edits from file happened when un-hooked username to rds.
 # fix panellum displaying error on first load without image option - (DONE)
 # fix purple image (current image) staying when new new kmz - (DONE)
 # look at setting bounds for drawing on 360 images as currently one can draw polyons outside the pixels of the image
@@ -35,7 +36,7 @@
 # add functions/button to delete all annotations for image.
 # add remove overlay button
 # add zoom to overlay button
-# zoom to extents of polygons drawn on mape when r$current_image changes
+# zoom to extents of polygons drawn on map when r$current_image changes
 # add help rmds - (DONE),
 # write unit test functions
 # add 'restore defaults' button in settings for
@@ -46,11 +47,11 @@
 # switch to |> instead of %>% pipes
 # TODO
 
-
 # save the user config
-save_user_config <- function(usr_config){
+save_user_config <- function(config_var){
   #print("user config saved!")
-  configr::write.config(config.dat = r$config, file.path = file.path(paste0(app_sys("extdata"), "/user-config.yml")), write.type = "yaml", indent = 4)
+  req(r$config, myEnv$project_config_file)
+  configr::write.config(config.dat = r$config, file.path = myEnv$project_config_file, write.type = "yaml", indent = 4)
   return("user config saved!")
 }
 
@@ -85,12 +86,12 @@ get_image_metadata <- function(files_df, imageToGet){
   #print("get_image_metadata called")
   #print(imageToGet)
   colnames(files_df)[which(colnames(files_df)=="FileName")] <- "FileName"
-  colnames(files_df)[which(colnames(files_df)=="GPSLatitudeRef")] <- "LatitudeRef"
-  colnames(files_df)[which(colnames(files_df)=="GPSLatitude")] <- "Latitude"
-  colnames(files_df)[which(colnames(files_df)=="GPSLongitudeRef")] <- "LongitudeRef"
-  colnames(files_df)[which(colnames(files_df)=="GPSLongitude")] <- "Longitude"
+  colnames(files_df)[which(colnames(files_df)=="GPSLatitudeRef")] <- "GPSLatitudeRef"
+  colnames(files_df)[which(colnames(files_df)=="GPSLatitude")] <- "GPSLatitude"
+  colnames(files_df)[which(colnames(files_df)=="GPSLongitudeRef")] <- "GPSLongitudeRef"
+  colnames(files_df)[which(colnames(files_df)=="GPSLongitude")] <- "GPSLongitude"
   newdata <- files_df[which(files_df$FileName==imageToGet),]
-
+  #View(newdata)
   return(newdata)
 }
 
@@ -106,11 +107,11 @@ write_image_gps_metadata <- function(image_file, latitude, latitude_ref, longitu
   # Execute the ExifTool command to update the image's GPS metadata
   exiftoolr::exif_call(
     args = c( "-overwrite_original",
-      gps_latitude_command,
-      gps_latitude_ref_command,
-      gps_longitude_command,
-      gps_longitude_ref_command,
-      image_file
+              gps_latitude_command,
+              gps_latitude_ref_command,
+              gps_longitude_command,
+              gps_longitude_ref_command,
+              image_file
     )
   )
 }
@@ -119,7 +120,10 @@ write_image_gps_metadata <- function(image_file, latitude, latitude_ref, longitu
 load_lookup <- function(fileToLoad, display_column, value_column){
   #print("load lookup called")
   #print(paste0("fileToLoad: ", fileToLoad))
-  lookup <- utils::read.csv(file = fileToLoad, header = TRUE, sep = ',')
+  full_file_path <- normalizePath(paste0(myEnv$data_dir,"/", fileToLoad), mustWork = TRUE)
+  #full_file_path <- normalizePath(fileToLoad, mustWork = TRUE)
+  #print(full_file_path)
+  lookup <- utils::read.csv(file = full_file_path, header = TRUE, sep = ',')
   my_list <- list()
   for(i in 1:nrow(lookup)) {
     my_list[[i]] <- lookup[i, value_column]
@@ -194,9 +198,16 @@ edit_annotation_data <- function(myUserAnnotationsData, myId,
 
 # delete annotations from data frame
 delete_annotation_data <- function(myUserAnnotationsData, myId) {
-    # Filter out the rows where the id matches the specified value
-    newdf <- myUserAnnotationsData[myUserAnnotationsData$id != myId,]
-    return(newdf)
+  # Filter out the rows where the id matches the specified value
+  newdf <- myUserAnnotationsData[myUserAnnotationsData$id != myId,]
+  return(newdf)
+}
+
+# clear all annotations from data frame
+clear_all_annotation_data <- function(myUserAnnotationsData) {
+  # remove all rows
+  newdf <- myUserAnnotationsData[0,]
+  return(newdf)
 }
 
 # save annotations to file
@@ -234,15 +245,15 @@ add_annotations_form <- function(input, myActiveAnnotations, myId, myFeatureType
       style = "position: relative",
       bslib::card(
         title = paste0(myFeatureType),
-      div(
         div(
-          # Use a span to wrap the icon and text for better inline display
-          span(HTML(paste0(
-            myIcon, # Use the myIcon directly which includes the icon HTML
-            h5(myId, style = "display: inline; margin-left: 5px; vertical-align: middle;")
-          ))),
-          style = "float: left;" # Aligns myId and icon to the left
-        ),
+          div(
+            # Use a span to wrap the icon and text for better inline display
+            span(HTML(paste0(
+              myIcon, # Use the myIcon directly which includes the icon HTML
+              h5(myId, style = "display: inline; margin-left: 5px; vertical-align: middle;")
+            ))),
+            style = "float: left;" # Aligns myId and icon to the left
+          ),
           div(
             id = "button_group", # Container for buttons
             style = "text-align: right; margin-bottom: 20px;", # Right align buttons and add space below
@@ -275,41 +286,41 @@ add_annotations_form <- function(input, myActiveAnnotations, myId, myFeatureType
             size = NULL
           ),
           if(myEnv$config$lookup2Enabled == TRUE){
-          selectInput(
-            inputId = paste0("control_form-","dropdown2-", myId),
-            label = paste0(myFeatureType, "-", myEnv$config$lookup2Label),
-            choices = myEnv$var_dropdown2,
-            selected = myDD2,
-            multiple = FALSE,
-            selectize = FALSE,
-            width = NULL,
-            size = NULL
-          )
-            },
+            selectInput(
+              inputId = paste0("control_form-","dropdown2-", myId),
+              label = paste0(myFeatureType, "-", myEnv$config$lookup2Label),
+              choices = myEnv$var_dropdown2,
+              selected = myDD2,
+              multiple = FALSE,
+              selectize = FALSE,
+              width = NULL,
+              size = NULL
+            )
+          },
           if(myEnv$config$lookup3Enabled == TRUE){
-          selectInput(
-            inputId = paste0("control_form-","dropdown3-", myId),
-            label = paste0(myFeatureType, "-", myEnv$config$lookup3Label),
-            choices = myEnv$var_dropdown3,
-            selected = myDD3,
-            multiple = FALSE,
-            selectize = FALSE,
-            width = NULL,
-            size = NULL
-          )
-            },
+            selectInput(
+              inputId = paste0("control_form-","dropdown3-", myId),
+              label = paste0(myFeatureType, "-", myEnv$config$lookup3Label),
+              choices = myEnv$var_dropdown3,
+              selected = myDD3,
+              multiple = FALSE,
+              selectize = FALSE,
+              width = NULL,
+              size = NULL
+            )
+          },
           if(myEnv$config$lookup4Enabled == TRUE){
-          selectInput(
-            inputId = paste0("control_form-","dropdown4-", myId),
-            label = paste0(myFeatureType, "-", myEnv$config$lookup4Label),
-            choices = myEnv$var_dropdown4,
-            selected = myDD4,
-            multiple = FALSE,
-            selectize = FALSE,
-            width = NULL,
-            size = NULL
-          )
-            },
+            selectInput(
+              inputId = paste0("control_form-","dropdown4-", myId),
+              label = paste0(myFeatureType, "-", myEnv$config$lookup4Label),
+              choices = myEnv$var_dropdown4,
+              selected = myDD4,
+              multiple = FALSE,
+              selectize = FALSE,
+              width = NULL,
+              size = NULL
+            )
+          },
         ),style = "overflow: visible; min-height: 50px;"
       ),
     )
@@ -351,7 +362,7 @@ add_annotations_form <- function(input, myActiveAnnotations, myId, myFeatureType
       icon.classList.remove('fa-chevron-down');
       icon.classList.add('fa-chevron-up');
     }",
-    divID, btnID
+      divID, btnID
     )
     shinyjs::runjs(jsCode)
   }) %>% bindEvent(input[[paste0("collapse_", myId)]])
@@ -374,59 +385,59 @@ add_annotations_form <- function(input, myActiveAnnotations, myId, myFeatureType
 
   # Create observer for updating dd2
   if(myEnv$config$lookup2Enabled == TRUE){
-  observe({
-    #print("DD2 changed")
-    #print(input[[paste0("dropdown2-", myId)]])
-    r$user_annotations_data <-
-      edit_annotation_data(
-        myUserAnnotationsData = r$user_annotations_data,
-        myId = myId,
-        myDD2 = paste0(input[[paste0("dropdown2-", myId)]])
+    observe({
+      #print("DD2 changed")
+      #print(input[[paste0("dropdown2-", myId)]])
+      r$user_annotations_data <-
+        edit_annotation_data(
+          myUserAnnotationsData = r$user_annotations_data,
+          myId = myId,
+          myDD2 = paste0(input[[paste0("dropdown2-", myId)]])
+        )
+      save_annotations(
+        myAnnotations = r$user_annotations_data,
+        myAnnotationFileName = r$user_annotations_file_name
       )
-    save_annotations(
-      myAnnotations = r$user_annotations_data,
-      myAnnotationFileName = r$user_annotations_file_name
-    )
-  }) %>% bindEvent(input[[paste0("dropdown2-", myId)]])
+    }) %>% bindEvent(input[[paste0("dropdown2-", myId)]])
   }
   # Create observer for updating dd3
   if(myEnv$config$lookup3Enabled == TRUE){
-  observe({
-    #print("DD3 changed")
-    #print(input[[paste0("dropdown2-", myId)]])
-    r$user_annotations_data <-
-      edit_annotation_data(
-        myUserAnnotationsData = r$user_annotations_data,
-        myId = myId,
-        myDD3 = paste0(input[[paste0("dropdown3-", myId)]])
+    observe({
+      #print("DD3 changed")
+      #print(input[[paste0("dropdown2-", myId)]])
+      r$user_annotations_data <-
+        edit_annotation_data(
+          myUserAnnotationsData = r$user_annotations_data,
+          myId = myId,
+          myDD3 = paste0(input[[paste0("dropdown3-", myId)]])
+        )
+      save_annotations(
+        myAnnotations = r$user_annotations_data,
+        myAnnotationFileName = r$user_annotations_file_name
       )
-    save_annotations(
-      myAnnotations = r$user_annotations_data,
-      myAnnotationFileName = r$user_annotations_file_name
-    )
-  }) %>% bindEvent(input[[paste0("dropdown3-", myId)]])
+    }) %>% bindEvent(input[[paste0("dropdown3-", myId)]])
   }
   # Create observer for updating dd4
   if(myEnv$config$lookup4Enabled == TRUE){
-  observe({
-    #print("DD4 changed")
-    #print(input[[paste0("dropdown2-", myId)]])
-    r$user_annotations_data <-
-      edit_annotation_data(
-        myUserAnnotationsData = r$user_annotations_data,
-        myId = myId,
-        myDD4 = paste0(input[[paste0("dropdown4-", myId)]])
+    observe({
+      #print("DD4 changed")
+      #print(input[[paste0("dropdown2-", myId)]])
+      r$user_annotations_data <-
+        edit_annotation_data(
+          myUserAnnotationsData = r$user_annotations_data,
+          myId = myId,
+          myDD4 = paste0(input[[paste0("dropdown4-", myId)]])
+        )
+      save_annotations(
+        myAnnotations = r$user_annotations_data,
+        myAnnotationFileName = r$user_annotations_file_name
       )
-    save_annotations(
-      myAnnotations = r$user_annotations_data,
-      myAnnotationFileName = r$user_annotations_file_name
-    )
-  }) %>% bindEvent(input[[paste0("dropdown4-", myId)]])
+    }) %>% bindEvent(input[[paste0("dropdown4-", myId)]])
   }
   #add to r$annotations_data
   r$user_annotations_data <- edit_annotation_data(myUserAnnotationsData = r$user_annotations_data, myUser = r$user_name, myId = myId, myImage=r$current_image, myFeatureType=paste0(myFeatureType), myGeometry=myGeometry, myDD1 = myDD1, myDD2 = myDD2, myDD3 = myDD3, myDD4 = myDD4)
 
-#View(r$user_annotations_data)
+  #View(r$user_annotations_data)
 }
 
 # clear all annotations from the form NOT the data frame
@@ -440,7 +451,7 @@ clear_annotations_form <- function() {
       removeUI(selector = paste0("#control_form-", current_id))
     }
 
-  # Stop the observer for the collapse button
+    # Stop the observer for the collapse button
     for(t in r$active_annotations_collapse){
       #print(paste0("removing observer for collapse"))
       # Safely remove the observer
@@ -493,32 +504,64 @@ addMapOverlay <- function(overlayMap){
 
 # Function to load the base map with three groups: '360 images', 'points', and 'polygons'
 loadBaseLeafletMap <- function(kml="") {
-  mymap <- leaflet::renderLeaflet({
-    #print("loadBaseLeafletMap called")
-    leaflet::leaflet(options = leaflet::leafletOptions(minZoom = 2, maxZoom = 18)) %>%
-      leaflet::setMaxBounds(lng1 = -180, lat1 = -90, lng2 = 180, lat2 = 90) %>%
-      leaflet::addProviderTiles(eval(parse(text=paste0("leaflet::providers$", myEnv$config$mapPanelSource)))) %>%
-      leaflet.extras::addKML(kml, layerId = "my_kml", group ="360-Images" ,  markerType = "circleMarker",
-                             stroke = FALSE, fillColor = "yellow", fillOpacity = 1,
-                             markerOptions = leaflet::markerOptions(interactive = TRUE, clickable = TRUE, radius = 5, riseOnHover = TRUE, riseOffset = 250), labelProperty = "name") %>%
-      leafpm::addPmToolbar(targetGroup = "Map-Annotations",
-                           toolbarOptions = leafpm::pmToolbarOptions(drawMarker = TRUE,
-                                                                     drawPolygon = TRUE,
-                                                                     drawPolyline = FALSE,
-                                                                     drawCircle = FALSE,
-                                                                     editMode = TRUE,
-                                                                     cutPolygon = FALSE,
-                                                                     removalMode = FALSE
-                                                                     ),
-                           drawOptions = leafpm::pmDrawOptions(list(draggable = FALSE)),
-                           editOptions = leafpm::pmEditOptions(snappable = FALSE, snapDistance = 20,
-                                                               allowSelfIntersection = FALSE, draggable = FALSE,
-                                                               preventMarkerRemoval = FALSE, preventVertexEdit = FALSE)
-                                                     ) %>%
-      leafpm::removePmToolbar()  %>%
-      leaflet::addLayersControl(overlayGroups = c("360-Images", "Overlay", "Whole-Image-Annotations", "Map-Annotations"), options = leaflet::layersControlOptions(collapsed = TRUE))
 
-   })
+  if(myEnv$config$mapPanelSource == "Google.Maps"){
+    #print(myEnv$config$mapPanelSource)
+
+    mymap <- leaflet::renderLeaflet({
+      #print("loadBaseLeafletMap called")
+      leaflet::leaflet(options = leaflet::leafletOptions(minZoom = 2, maxZoom = 18)) %>%
+        leaflet::setMaxBounds(lng1 = -180, lat1 = -90, lng2 = 180, lat2 = 90) %>%
+        leaflet::addTiles(urlTemplate = paste0("https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}&key=", myEnv$config$mapAPIKey, maxZoom = 18), attribution = 'Map data &copy; Google') %>%
+        leaflet.extras::addKML(kml, layerId = "my_kml", group ="360-Images" ,  markerType = "circleMarker",
+                               stroke = FALSE, fillColor = "yellow", fillOpacity = 1,
+                               markerOptions = leaflet::markerOptions(interactive = TRUE, clickable = TRUE, radius = 5, riseOnHover = TRUE, riseOffset = 250), labelProperty = "name") %>%
+        leafpm::addPmToolbar(targetGroup = "Map-Annotations",
+                             toolbarOptions = leafpm::pmToolbarOptions(drawMarker = TRUE,
+                                                                       drawPolygon = TRUE,
+                                                                       drawPolyline = FALSE,
+                                                                       drawCircle = FALSE,
+                                                                       editMode = TRUE,
+                                                                       cutPolygon = FALSE,
+                                                                       removalMode = FALSE
+                             ),
+                             drawOptions = leafpm::pmDrawOptions(snappable = FALSE),
+                             editOptions = leafpm::pmEditOptions(snappable = FALSE, snapDistance = 20,
+                                                                 allowSelfIntersection = FALSE, draggable = FALSE,
+                                                                 preventMarkerRemoval = FALSE, preventVertexEdit = FALSE)
+        ) %>%
+        leafpm::removePmToolbar()  %>%
+        leaflet::addLayersControl(overlayGroups = c("360-Images", "Overlay", "Whole-Image-Annotations", "Map-Annotations"), options = leaflet::layersControlOptions(collapsed = TRUE))
+
+    })
+  } else {
+    mymap <- leaflet::renderLeaflet({
+      #print("loadBaseLeafletMap called")
+      leaflet::leaflet(options = leaflet::leafletOptions(minZoom = 2, maxZoom = 17)) %>%
+        leaflet::setMaxBounds(lng1 = -180, lat1 = -90, lng2 = 180, lat2 = 90) %>%
+        leaflet::addProviderTiles(eval(parse(text=paste0("leaflet::providers$", myEnv$config$mapPanelSource)))) %>%
+        leaflet.extras::addKML(kml, layerId = "my_kml", group ="360-Images" ,  markerType = "circleMarker",
+                               stroke = FALSE, fillColor = "yellow", fillOpacity = 1,
+                               markerOptions = leaflet::markerOptions(interactive = TRUE, clickable = TRUE, radius = 5, riseOnHover = TRUE, riseOffset = 250), labelProperty = "name") %>%
+        leafpm::addPmToolbar(targetGroup = "Map-Annotations",
+                             toolbarOptions = leafpm::pmToolbarOptions(drawMarker = TRUE,
+                                                                       drawPolygon = TRUE,
+                                                                       drawPolyline = FALSE,
+                                                                       drawCircle = FALSE,
+                                                                       editMode = TRUE,
+                                                                       cutPolygon = FALSE,
+                                                                       removalMode = FALSE
+                             ),
+                             drawOptions = leafpm::pmDrawOptions(snappable = FALSE),
+                             editOptions = leafpm::pmEditOptions(snappable = FALSE, snapDistance = 20,
+                                                                 allowSelfIntersection = FALSE, draggable = FALSE,
+                                                                 preventMarkerRemoval = FALSE, preventVertexEdit = FALSE)
+        ) %>%
+        leafpm::removePmToolbar()  %>%
+        leaflet::addLayersControl(overlayGroups = c("360-Images", "Overlay", "Whole-Image-Annotations", "Map-Annotations"), options = leaflet::layersControlOptions(collapsed = TRUE))
+
+    })
+  }
 
   return(mymap)
 }
@@ -526,17 +569,18 @@ loadBaseLeafletMap <- function(kml="") {
 # triggered to add the current image to the map
 addCurrentImageToMap <- function(){
   #print("addCurrentImageToMap called")
-  req(r$current_image_metadata)
+  req(r$current_image_metadata, r$current_map_zoom)
 
-  lat <- as.numeric(paste0(r$current_image_metadata$Latitude))
-  long <- as.numeric(paste0(r$current_image_metadata$Longitude))
+  lat <- as.numeric(paste0(r$current_image_metadata$GPSLatitude))
+  long <- as.numeric(paste0(r$current_image_metadata$GPSLongitude))
+  zoom <- as.numeric(r$current_map_zoom)
 
   myMapProxy <- leaflet::leafletProxy("mymap") %>%
     leaflet::clearMarkers() %>%
     leaflet::removeMarker(layerId = "currentImage") %>% # remove the purple cirlce marker
     leaflet::clearGroup("Map-Annotations") %>%
     leaflet::clearGroup("Whole-Image-Annotations") %>%
-    leaflet::setView(lng = long, lat = lat, zoom=16) %>%
+    leaflet::setView(lng = long, lat = lat, zoom = zoom) %>%
     leaflet::addCircleMarkers(lng = long, lat = lat, layerId = "currentImage", group= "360-Images", fillColor = "darkviolet", radius=12, fillOpacity = 0.1, stroke = T, color = "#03F", weight = 3, opacity = 0.4) %>%
     leafpm::addPmToolbar(targetGroup = "Map-Annotations",
                          toolbarOptions = leafpm::pmToolbarOptions(drawMarker = TRUE,
@@ -547,7 +591,7 @@ addCurrentImageToMap <- function(){
                                                                    cutPolygon = FALSE,
                                                                    removalMode = FALSE
                          ),
-                         drawOptions = leafpm::pmDrawOptions(list(draggable = FALSE)),
+                         drawOptions = leafpm::pmDrawOptions(snappable = FALSE),
                          editOptions = leafpm::pmEditOptions(snappable = FALSE, snapDistance = 20,
                                                              allowSelfIntersection = FALSE, draggable = FALSE,
                                                              preventMarkerRemoval = FALSE, preventVertexEdit = FALSE)
@@ -568,111 +612,111 @@ clear_drawn_annotation_from_map <- function(session, layerId) {
 add_annotations_to_map <- function(){
   #print("add_annotations_to_map called")
 
-    #print("new map layer added")
-    # check for whole image annotations
-    r$current_annotation_whole_images <- r$user_annotations_data %>%
-      dplyr::filter(imagefile == r$current_image & feature_type %in% c("Point-whole-image-annotation")) %>%
-      sf::st_as_sf(., wkt = "geometry")
-    # check for map annotations
-    r$current_annotation_markers <- r$user_annotations_data %>%
-       dplyr::filter(imagefile == r$current_image & feature_type %in% c("Point-map")) %>%
-       sf::st_as_sf(., wkt = "geometry")
-    # check for polygon annotations
-    r$current_annotation_polygons <- r$user_annotations_data %>%
-      dplyr::filter(imagefile == r$current_image & feature_type %in% c("Polygon-map")) %>%
-      sf::st_as_sf(., wkt = "geometry")
+  #print("new map layer added")
+  # check for whole image annotations
+  r$current_annotation_whole_images <- r$user_annotations_data %>%
+    dplyr::filter(imagefile == r$current_image & feature_type %in% c("Point-whole-image-annotation")) %>%
+    sf::st_as_sf(., wkt = "geometry")
+  # check for map annotations
+  r$current_annotation_markers <- r$user_annotations_data %>%
+    dplyr::filter(imagefile == r$current_image & feature_type %in% c("Point-map")) %>%
+    sf::st_as_sf(., wkt = "geometry")
+  # check for polygon annotations
+  r$current_annotation_polygons <- r$user_annotations_data %>%
+    dplyr::filter(imagefile == r$current_image & feature_type %in% c("Polygon-map")) %>%
+    sf::st_as_sf(., wkt = "geometry")
 
-    myMapProxy <- leaflet::leafletProxy("mymap")
+  myMapProxy <- leaflet::leafletProxy("mymap")
 
-     #Check and add markers if present
-     if(any(sf::st_geometry_type(r$current_annotation_markers) %in% c("POINT", "MULTIPOINT"))) {
-         myMapProxy <- myMapProxy %>%
-           leaflet::addAwesomeMarkers(
-             data = r$current_annotation_markers, #single_feature,
-             layerId = ~id,  # Set layerId to the id column
-             group = "Map-Annotations",
-             icon = myEnv$mapIcons$pointMapIcon,
-             label = ~id,
-             popup = ~paste(myEnv$formIcons$pointMapFormIcon,
-                            "ID:", id, "<br>"
-                           ),
-             popupOptions = leaflet::popupOptions(
-               maxWidth = 300,
-               minWidth = 50,
-               maxHeight = NULL,
-               autoPan = FALSE,
-               keepInView = TRUE,
-               closeButton = FALSE,
-               closeOnClick = TRUE
-             )
-           )
-     }
-
-    # Check if r$annotation_polygons contains polygons before adding them
-    if(any(sf::st_geometry_type(r$current_annotation_polygons) %in% c("POLYGON", "MULTIPOLYGON"))) {
-      myMapProxy <- myMapProxy %>%
-        leaflet::addPolygons( data = r$current_annotation_polygons,
-                              layerId = ~id,  # Set layerId to the id column
-                              group = "Map-Annotations",
-                              label = ~id,
-                              stroke = myEnv$config$mapPolygonStroke,
-                              color = myEnv$config$mapPolygonStrokeColour,
-                              weight = myEnv$config$mapPolygonStrokeWeight,
-                              opacity = myEnv$config$mapPolygonStrokeOpacity,
-                              fill = myEnv$config$mapPolygonFill,
-                              fillColor = myEnv$config$mapPolygonFillColour,
-                              fillOpacity = myEnv$config$mapPolygonFillOpacity,
-                              dashArray = NULL,
-                              smoothFactor = 1,
-                              popup = ~paste(myEnv$formIcons$polygonMapFormIcon,
-                                             "ID:", id, "<br>"
-                                            ),
-                              popupOptions = leaflet::popupOptions(
-                                maxWidth = 300,
-                                minWidth = 50,
-                                maxHeight = NULL,
-                                autoPan = FALSE,
-                                keepInView = TRUE,
-                                closeButton = FALSE,
-                                closeOnClick = TRUE
-                              )
-                            )
-        }
-
-    # Check and add whole image annotations if present
-    if(any(sf::st_geometry_type(r$current_annotation_whole_images) %in% c("POINT", "MULTIPOINT"))) {
-      myMapProxy <- myMapProxy %>%
-        # Add markers with the Font Awesome "street view" icon
-        leaflet::addAwesomeMarkers(
-          data = r$current_annotation_whole_images,
-          layerId = ~id,  # Set layerId to the id column
-          group = "Whole-Image-Annotations",
-          icon = myEnv$mapIcons$wholeImageMapIcon,
-          label = ~id,
-          popup = ~paste(myEnv$formIcons$wholeImageMapFormIcon,
-                        "ID:", id, "<br>"
-          ),
-          popupOptions = leaflet::popupOptions(
-            maxWidth = 300,
-            minWidth = 50,
-            maxHeight = NULL,
-            autoPan = FALSE,
-            keepInView = TRUE,
-            closeButton = FALSE,
-            closeOnClick = TRUE
-          ),
-            clusterOptions = leaflet::markerClusterOptions(
-            showCoverageOnHover = TRUE,
-            zoomToBoundsOnClick = TRUE,
-            spiderfyOnMaxZoom = TRUE,
-            removeOutsideVisibleBounds = TRUE,
-            spiderLegPolylineOptions = list(weight = 1.5, color = "#222", opacity = 0.5),
-            freezeAtZoom = FALSE
-          ),
-          clusterId = "Whole-Image-Annotations"
+  #Check and add markers if present
+  if(any(sf::st_geometry_type(r$current_annotation_markers) %in% c("POINT", "MULTIPOINT"))) {
+    myMapProxy <- myMapProxy %>%
+      leaflet::addAwesomeMarkers(
+        data = r$current_annotation_markers, #single_feature,
+        layerId = ~id,  # Set layerId to the id column
+        group = "Map-Annotations",
+        icon = myEnv$mapIcons$pointMapIcon,
+        label = ~id,
+        popup = ~paste(myEnv$formIcons$pointMapFormIcon,
+                       "ID:", id, "<br>"
+        ),
+        popupOptions = leaflet::popupOptions(
+          maxWidth = 300,
+          minWidth = 50,
+          maxHeight = NULL,
+          autoPan = FALSE,
+          keepInView = TRUE,
+          closeButton = FALSE,
+          closeOnClick = TRUE
         )
-    }
-    return(myMapProxy)
+      )
+  }
+
+  # Check if r$annotation_polygons contains polygons before adding them
+  if(any(sf::st_geometry_type(r$current_annotation_polygons) %in% c("POLYGON", "MULTIPOLYGON"))) {
+    myMapProxy <- myMapProxy %>%
+      leaflet::addPolygons( data = r$current_annotation_polygons,
+                            layerId = ~id,  # Set layerId to the id column
+                            group = "Map-Annotations",
+                            label = ~id,
+                            stroke = myEnv$config$mapPolygonStroke,
+                            color = myEnv$config$mapPolygonStrokeColour,
+                            weight = myEnv$config$mapPolygonStrokeWeight,
+                            opacity = myEnv$config$mapPolygonStrokeOpacity,
+                            fill = myEnv$config$mapPolygonFill,
+                            fillColor = myEnv$config$mapPolygonFillColour,
+                            fillOpacity = myEnv$config$mapPolygonFillOpacity,
+                            dashArray = NULL,
+                            smoothFactor = 1,
+                            popup = ~paste(myEnv$formIcons$polygonMapFormIcon,
+                                           "ID:", id, "<br>"
+                            ),
+                            popupOptions = leaflet::popupOptions(
+                              maxWidth = 300,
+                              minWidth = 50,
+                              maxHeight = NULL,
+                              autoPan = FALSE,
+                              keepInView = TRUE,
+                              closeButton = FALSE,
+                              closeOnClick = TRUE
+                            )
+      )
+  }
+
+  # Check and add whole image annotations if present
+  if(any(sf::st_geometry_type(r$current_annotation_whole_images) %in% c("POINT", "MULTIPOINT"))) {
+    myMapProxy <- myMapProxy %>%
+      # Add markers with the Font Awesome "street view" icon
+      leaflet::addAwesomeMarkers(
+        data = r$current_annotation_whole_images,
+        layerId = ~id,  # Set layerId to the id column
+        group = "Whole-Image-Annotations",
+        icon = myEnv$mapIcons$wholeImageMapIcon,
+        label = ~id,
+        popup = ~paste(myEnv$formIcons$wholeImageMapFormIcon,
+                       "ID:", id, "<br>"
+        ),
+        popupOptions = leaflet::popupOptions(
+          maxWidth = 300,
+          minWidth = 50,
+          maxHeight = NULL,
+          autoPan = FALSE,
+          keepInView = TRUE,
+          closeButton = FALSE,
+          closeOnClick = TRUE
+        ),
+        clusterOptions = leaflet::markerClusterOptions(
+          showCoverageOnHover = TRUE,
+          zoomToBoundsOnClick = TRUE,
+          spiderfyOnMaxZoom = TRUE,
+          removeOutsideVisibleBounds = TRUE,
+          spiderLegPolylineOptions = list(weight = 1.5, color = "#222", opacity = 0.5),
+          freezeAtZoom = FALSE
+        ),
+        clusterId = "Whole-Image-Annotations"
+      )
+  }
+  return(myMapProxy)
 }
 
 remove_map_item <- function(){
@@ -700,7 +744,7 @@ loadBaseLeaflet360 <- function() {
 
   #print("LoadBase360 called")
   leaflet360 <- leaflet::renderLeaflet({
-     leaflet::leaflet(options = leaflet::leafletOptions(minZoom = -2, maxZoom = 4, crs = leaflet::leafletCRS(crsClass = "L.CRS.Simple")))
+    leaflet::leaflet(options = leaflet::leafletOptions(minZoom = -2, maxZoom = 4, crs = leaflet::leafletCRS(crsClass = "L.CRS.Simple")))
     #%>%
     #   leafpm::addPmToolbar(targetGroup = "360-Annotations",
     #                        toolbarOptions = leafpm::pmToolbarOptions(drawMarker = TRUE,
@@ -718,7 +762,7 @@ loadBaseLeaflet360 <- function() {
     #   leaflet::addLayersControl(overlayGroups = c("360-Annotations"), options = leaflet::layersControlOptions(collapsed = FALSE))
     #
 
-    })
+  })
   return(leaflet360)
 }
 
@@ -780,8 +824,8 @@ addCurrentImageToLeaflet360 <- function(){
       leaflet::setView(lng = imageCenter[2], lat = imageCenter[1], zoom = -2)
     #TODO see if measuring in pixels is possible
     #%>%
-      #leaflet::addMeasure(position = "topright",  primaryLengthUnit = "pixels", primaryAreaUnit = "sqpixels", activeColor = "#3D535D", completedColor = "#7D4479")
-               })
+    #leaflet::addMeasure(position = "topright",  primaryLengthUnit = "pixels", primaryAreaUnit = "sqpixels", activeColor = "#3D535D", completedColor = "#7D4479")
+  })
 
   return(leaflet360)
 }
@@ -827,7 +871,7 @@ add_annotations_to_360 <- function(){
           closeOnClick = TRUE
         )
       )
-   }
+  }
 
   # Check if r$annotation_polygons contains polygons before adding them
   if(any(sf::st_geometry_type(r$current_annotation_360polygons) %in% c("POLYGON", "MULTIPOLYGON"))) {
@@ -896,7 +940,7 @@ create_form_icons <- function() {
     polygonMapFormIcon = paste0("<i class='fa fa-draw-polygon' style='color: ", myEnv$config$mapIconColour, "; background-color: transparent;'></i>"),
     point360FormIcon = paste0("<i class='fa fa-map-marked-alt' style='color: ", myEnv$config$pano360IconColour, "; background-color: transparent;'></i>"),
     polygon360FormIcon = paste0("<i class='fa fa-draw-polygon' style='color: ", myEnv$config$pano360IconColour, "; background-color: transparent;'></i>")
-    )
+  )
   return(formIcons)
 }
 
@@ -923,156 +967,68 @@ create_cropped_polygons_from_360_images <- function(annotations_export_dir){
     withProgress(message = 'Creating crops', value = 0, {
 
 
-    for (i in seq_len(nrow(polygons_sf))) {
-      bbox <- sf::st_bbox(polygons_sf[i, ])
+      for (i in seq_len(nrow(polygons_sf))) {
+        bbox <- sf::st_bbox(polygons_sf[i, ])
 
-      # Update progress bar
-      incProgress(1 / num_polygons, detail = paste("Processing image", i, "of", num_polygons))
+        # Update progress bar
+        incProgress(1 / num_polygons, detail = paste("Processing image", i, "of", num_polygons))
 
-      # Initialize the plot with the raster annotation
-      p <- ggplot2::ggplot() +
-        ggplot2::annotation_raster(img_raster, xmin=0, xmax=plot_width, ymin=0, ymax=plot_height) +
-        ggplot2::coord_sf(xlim = c(bbox$xmin, bbox$xmax), ylim = c(bbox$ymin, bbox$ymax), expand = FALSE) +
-        ggplot2::theme_void()
+        # Initialize the plot with the raster annotation
+        p <- ggplot2::ggplot() +
+          ggplot2::annotation_raster(img_raster, xmin=0, xmax=plot_width, ymin=0, ymax=plot_height) +
+          ggplot2::coord_sf(xlim = c(bbox$xmin, bbox$xmax), ylim = c(bbox$ymin, bbox$ymax), expand = FALSE) +
+          ggplot2::theme_void()
 
-      # Add the polygon layer conditionally
-      if (myEnv$config$showPano360PolygonStrokeInCropExport && myEnv$config$showPano360PolygonFillInCropExport) {
-        # Both stroke and fill enabled
-        p <- p + ggplot2::geom_sf(
-          data = polygons_sf[i, ],
-          color = myEnv$config$pano360PolygonStrokeColour,
-          fill = myEnv$config$pano360PolygonFillColour,
-          linewidth = myEnv$config$pano360PolygonStrokeWeight,
-          alpha = myEnv$config$pano360PolygonStrokeOpacity
-        )
-      } else if (myEnv$config$showPano360PolygonStrokeInCropExport) {
-        # Only stroke enabled
-        p <- p + ggplot2::geom_sf(
-          data = polygons_sf[i, ],
-          color = myEnv$config$pano360PolygonStrokeColour,
-          fill = NA,
-          linewidth = myEnv$config$pano360PolygonStrokeWeight,
-          alpha = myEnv$config$pano360PolygonStrokeOpacity
-        )
-      } else if (myEnv$config$showPano360PolygonFillInCropExport) {
-        # Only fill enabled
-        p <- p + ggplot2::geom_sf(
-          data = polygons_sf[i, ],
-          color = NA,
-          fill = myEnv$config$pano360PolygonFillColour
-        )
+        # Add the polygon layer conditionally
+        if (myEnv$config$showPano360PolygonStrokeInCropExport && myEnv$config$showPano360PolygonFillInCropExport) {
+          # Both stroke and fill enabled
+          p <- p + ggplot2::geom_sf(
+            data = polygons_sf[i, ],
+            color = myEnv$config$pano360PolygonStrokeColour,
+            fill = myEnv$config$pano360PolygonFillColour,
+            linewidth = myEnv$config$pano360PolygonStrokeWeight,
+            alpha = myEnv$config$pano360PolygonStrokeOpacity
+          )
+        } else if (myEnv$config$showPano360PolygonStrokeInCropExport) {
+          # Only stroke enabled
+          p <- p + ggplot2::geom_sf(
+            data = polygons_sf[i, ],
+            color = myEnv$config$pano360PolygonStrokeColour,
+            fill = NA,
+            linewidth = myEnv$config$pano360PolygonStrokeWeight,
+            alpha = myEnv$config$pano360PolygonStrokeOpacity
+          )
+        } else if (myEnv$config$showPano360PolygonFillInCropExport) {
+          # Only fill enabled
+          p <- p + ggplot2::geom_sf(
+            data = polygons_sf[i, ],
+            color = NA,
+            fill = myEnv$config$pano360PolygonFillColour
+          )
+        }
+
+        # Export each plot as a PNG image
+        # add id to the filename
+        cropped_image_path <- paste0(annotations_export_dir, "/", gsub("\\.\\w+$", paste0("_", polygons_sf[i, "id"], ".png"), r$current_image))
+        #print(cropped_image_path)
+
+        #ggplot2::ggsave(cropped_image_path, plot = p, width = plot_width, height = plot_height, units = "px", dpi = 96, limitsize = FALSE, bg = "transparent")
+        grDevices::png(filename = cropped_image_path, units = "px", type = "cairo-png", bg = "transparent", res = 96)
+        print(p)  # This will render the ggplot object to the PNG device
+        grDevices::dev.off()
+
+        # get the gps metadata from the r$current_image
+        lat <- r$current_image_metadata$GPSLatitude
+        long <- r$current_image_metadata$GPSLongitude
+        lat_ref <- r$current_image_metadata$GPSLatitudeRef
+        long_ref <- r$current_image_metadata$GPSLongitudeRef
+        # now write the exiftool GPS metadata to the png
+        #View(r$current_image_metadata)
+        write_image_gps_metadata(image_file=cropped_image_path, latitude=lat, latitude_ref=lat_ref, longitude=long,longitude_ref=long_ref)
+
       }
-
-      # Export each plot as a PNG image
-      # add id to the filename
-      cropped_image_path <- paste0(annotations_export_dir, "/", gsub("\\.\\w+$", paste0("_", polygons_sf[i, "id"], ".png"), r$current_image))
-      #print(cropped_image_path)
-
-      #ggplot2::ggsave(cropped_image_path, plot = p, width = plot_width, height = plot_height, units = "px", dpi = 96, limitsize = FALSE, bg = "transparent")
-       grDevices::png(filename = cropped_image_path, units = "px", type = "cairo-png", bg = "transparent", res = 96)
-       print(p)  # This will render the ggplot object to the PNG device
-       grDevices::dev.off()
-
-      # get the gps metadata from the r$current_image
-      lat <- r$current_image_metadata$Latitude
-      long <- r$current_image_metadata$Longitude
-      lat_ref <- r$current_image_metadata$latitude_ref
-      long_ref <- r$current_image_metadata$longitude_ref
-      # now write the exiftool GPS metadata to the png
-      write_image_gps_metadata(image_file=cropped_image_path, latitude=lat, latitude_ref=lat_ref, longitude=long,longitude_ref=long_ref)
-
-    }
 
     }) #withProgress
   }
   #return("success")
 }
-
-# ####################
-# # add overlay polygons to current_image if drawn on
-# #TODO currently only triggered on draw. maybe trigger on toggle of pano 360 button??
-# add_overlays_to_image_for_pannellum <- function(){
-#
-#   req(r$user_annotations_data, r$current_annotation_360markers, r$current_annotation_360polygons, r$current_image)
-#
-#   #View(r$current_annotation_360markers)
-#   #View(r$current_annotation_360polygons)
-#
-#   df_polygons <- r$current_annotation_360polygons
-#   df_points <- r$current_annotation_360markers
-#   #print(r$current_image)
-#
-#   image_path <- paste0(app_sys("app/www/files"),"/", r$current_image)
-#   #print(image_path)
-#   img <- jpeg::readJPEG(image_path)
-#
-#   # Convert the image to a raster object which can be used in ggplot
-#   img_raster <- as.raster(img)
-#   plot_width <- r$current_image_metadata$ImageWidth  # Width of the image
-#   plot_height <- r$current_image_metadata$ImageHeight  # Height of the image
-#   #print(plot_width)
-#   #print(plot_height)
-#
-#   # Create an empty plot with the image as background
-#   p <- ggplot2::ggplot() +
-#     ggplot2::annotation_raster(img_raster, xmin=0, xmax=plot_width, ymin=0, ymax=plot_height) +
-#     ggplot2::coord_fixed(ratio = 1, expand = FALSE) +
-#     ggplot2::xlim(c(0, plot_width)) +
-#     ggplot2::ylim(c(0, plot_height)) +
-#     ggplot2::theme_void() +
-#     ggplot2::theme(plot.margin = ggplot2::unit(rep(0, 4), "lines"),  # Ensure no padding
-#                    panel.background = ggplot2::element_blank(),     # No background
-#                    plot.background = ggplot2::element_rect(fill = "transparent", color = NA))  # Transparent plot background
-#
-#   # Check if polygons dataframe is provided and plot
-#   if (!is.null(df_polygons)) {
-#     # Convert to sf object
-#     polygons_sf <- sf::st_as_sf(df_polygons, wkt = "geometry", crs = NA)
-#
-#     # Add polygons to the plot
-#     for (i in seq_len(nrow(polygons_sf))) {
-#       p <- p + ggplot2::geom_sf(data = polygons_sf[i, ],
-#                        color = myEnv$config$pano360PolygonStrokeColour,
-#                        fill = myEnv$config$pano360PolygonFillColour,
-#                        linewidth = myEnv$config$pano360PolygonStrokeWeight,
-#                        #linetype = myEnv$config$pano360PolygonStroke,
-#                        alpha = myEnv$config$pano360PolygonStrokeOpacity
-#       )
-#     }
-#   }
-#
-#   # Check if points dataframe is provided and plot
-#   if (!is.null(df_points)) {
-#     # Convert to sf object
-#     points_sf <- sf::st_as_sf(df_points, wkt = "geometry", crs = NA)
-#
-#     # Add points to the plot
-#     for (i in seq_len(nrow(points_sf))) {
-#       p <- p + ggplot2::geom_sf(data = points_sf[i, ], color = "blue", size = 6)#TODO fix the color maybe mak it a pin
-#     }
-#   }
-#
-#   overlay_image_path <- paste0(app_sys("app/www/files"), "/", gsub("\\.\\w+$", ".png", r$current_image))
-#   #overlay_image_path <- paste0(app_sys("app/www/files"), "/", paste0(tools::file_path_sans_ext(r$current_image), ".png"))
-#   #overlay_image_path <- paste0(gsub("\\.\\w+$", ".png", r$current_image))
-#   print(overlay_image_path)
-#   # print(p)
-#   # Save the plot as a PNG file, dimensions matching the original image
-#   # Save the plot as a PNG file with no white margins
-#   #ggplot2::ggsave(overlay_image_path, plot = p, width = plot_width, height = plot_height, units = "px", dpi = 96, limitsize = FALSE, bg = "transparent")
-#
-#
-#   # # Open PNG device
-#   grDevices::png(filename = overlay_image_path, width = plot_width, height = plot_height, units = "px", type = "cairo-png", res = 72)
-#   #
-#   # # Plot the data
-#    print(p)  # 'p' should be your ggplot object
-#    #grid::grid.draw(ggplot2::ggplotGrob(p)[3,4])
-#   #
-#   # # Close the PNG device
-#    grDevices::dev.off()
-#
-# }
-#
-# ########################
-#

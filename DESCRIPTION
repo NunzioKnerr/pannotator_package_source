@@ -1,18 +1,16 @@
 Package: pannotator
-Title: A Package for Annotating Panospheric (360 Degree) Images in R
-Version: 0.0.0.9001
-Authors@R: 
-    person("Guest", "Person", , "Guest.Person@google.com", role = c("cre", "aut"))
-Description: Pannotator is an interface for collecting ecological data
-    from 360 degree image files and annotating them using dropdown menus.
-    The interface is designed to be flexible and allows annotation of any
-    geocoded images.  The use of 360 cameras now allows the user to see in
-    all directions and generate data on almost any macroscopic variable
-    visible in an image. This package provides an immersive sampling
-    experience for the user.
+Title: Visualisation and Annotation of 360 Degree Imagery
+Version: 0.0.1.0001
+Authors@R: c(
+    person("Nunzio", "Knerr", , "Nunzio.Knerr@csiro.au", role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-0562-9479")),
+    person("Robert", "Godfree", , "Robert.Godfree@csiro.au", role = "aut",
+           comment = c(ORCID = "0000-0002-4263-2917")),
+    person("Matthew", "Petroff", , "contact@mpetroff.net", role = "ctb"),
+    person("CSIRO", role = "cph")
+  )
+Description: Provides a customisable R 'shiny' app for immersively visualising, mapping and annotating panospheric (360 degree) imagery. The flexible interface allows annotation of any geocoded images using up to 4 user specified dropdown menus. The app uses 'leaflet' to render maps that display the geo-locations of images and panellum <https://pannellum.org/>, a lightweight panorama viewer for the web, to render images in virtual 360 degree viewing mode. Key functions include the ability to draw on & export parts of 360 images for downstream applications. Users can also draw polygons and points on map imagery related to the panoramic images and export them for further analysis. Downstream applications include using annotations to train AI/ML models and geospatial modelling and analysis of camera based survey data.
 License: GPL (>= 3)
-URL: https://Removed.for.review
-BugReports: https://Removed.for.review/issues
 Imports: 
     bslib,
     colourpicker,
@@ -23,6 +21,7 @@ Imports:
     geojsonsf,
     ggplot2,
     golem,
+    graphics,
     grDevices,
     gridlayout,
     htmlwidgets,
@@ -42,6 +41,7 @@ Imports:
     shinythemes,
     shinyWidgets,
     stringr,
+    tools,
     utils
 Suggests: 
     knitr,
@@ -55,3 +55,7 @@ Encoding: UTF-8
 Language: en-US
 LazyData: true
 RoxygenNote: 7.3.2
+URL: https://github.com/NunzioKnerr/pannotator_package_source.git
+BugReports: https://github.com/NunzioKnerr/pannotator_package_source.git/issues
+
+Remotes: NunzioKnerr/pannotator_package_source

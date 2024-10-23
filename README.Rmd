@@ -5,13 +5,21 @@ output: github_document
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
 ```{r, include = FALSE}
-knitr::opts_chunk$set(
-  collapse = TRUE,
-  comment = "#>",
-  fig.path = "man/figures/README-",
-  out.width = "100%"
+  knitr::opts_chunk$set(
+    collapse = TRUE,
+    comment = "#>",
+    fig.path = "man/figures/README-",
+    out.width = "100%"
 )
 ```
+
+# `{pannotator}`
+
+<!-- badges: start -->
+
+[![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental) [![Codecov test coverage](https://codecov.io/gh/NunzioKnerr/pannotator/graph/badge.svg)](https://app.codecov.io/gh/NunzioKnerr/pannotator)
+
+<!-- badges: end -->
 
 ## pannotator
 
@@ -35,7 +43,7 @@ Below is some code to help ensure all dependencies are met:
 
 The software makes extensive use of ExifTool by Phil Harvey ([Exiftool.org](https://exiftool.org/)). To make installation of ExifTool accessible in R there is a package exiftoolr that you must install by running the code below.
 
-```{r eval=FALSE, paged.print=FALSE}
+```{r, eval=FALSE, paged.print=FALSE}
 # First check if you have exiftoolr installed
 check_for_package <- system.file(package = "exiftoolr")
 print(check_for_package)
@@ -47,7 +55,6 @@ if (check_for_package == "") {
 } else {
   print("exiftoolr package is already installed")
 }
-
 ```
 
 Now that you have installed exiftoolr we can check to make sure that ExifTool is on your system.
@@ -66,9 +73,9 @@ if (exists("check_for_ExifTool")) {
 }
 ```
 
-You must also install the 'remotes' package which we will use to install the pannotator package.
+You must also install the ‘remotes’ package which we will use to install the pannotator package.
 
-```{r, eval=FALSE}
+```{r, eval= FALSE}
 check_for_package <-  system.file(package = "remotes")
 
 print(check_for_package)
@@ -81,9 +88,9 @@ if (check_for_package == "") {
 }
 ```
 
-One last package not currently on CRAN is called 'gridlayout'. The code below checks for that and if need be installs it using the remotes package.
+One last package not currently on CRAN is called ‘gridlayout’. The code below checks for that and if need be installs it using the remotes package.
 
-```{r, eval=FALSE}
+```{r, eval= FALSE}
 check_for_package <- system.file(package = "gridlayout")
 
 print(check_for_package)
@@ -98,36 +105,32 @@ if (check_for_package == "") {
 
 You can now install the development version of the pannotator software.
 
-```{r, eval=FALSE}
+```{r, eval= FALSE}
 library(remotes)
 
 # to install a local version use this code: 
 # edit the path to point to your loacal version of the package.
 remotes::install_local(path = "pannotator_0.0.0.9001.tar.gz", dependencies = TRUE)  
-
 ```
 
 ## Running the Package
 
 To run the application use the following code.
 
-```{r, eval=FALSE}
-
+```{r, eval= FALSE}
 library(pannotator)
-run_app()
 
+options(shiny.port = httpuv::randomPort(), shiny.launch.browser = .rs.invokeShinyWindowExternal)
+
+run_app()
 ```
 
-Once run, the above code will popup a window from RStudio with the shiny application inside it. You can either use the package inside this window or click the 'Open in Browser' button to open it in the default web browser. Alternatively one could type the url listed next to this button (eg. 'http: //127.0.0.1:XXXXX') into the web browser of your choice and it will load from there.
-
-We recommend running it in a web browser as they generally have better functionality (e.g., zoom levels, font sizes etc.).
+Once run, the above code will popup a browser window with the shiny application inside it.
 
 ## Help Vignette
 
 If you want help you can find it using the following code:
 
-```{r, eval=FALSE}
-
+```{r, eval= FALSE}
 vignette('pannotator', package = 'pannotator')
-
 ```

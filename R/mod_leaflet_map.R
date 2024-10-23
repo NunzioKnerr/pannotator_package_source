@@ -14,11 +14,10 @@ mod_leaflet_map_ui <- function(id){
   options(digits=12)
   options(shiny.maxRequestSize = 5000*1024^2) #sets the file size to 5000mb
 
-
   tagList(
 
     #this deletes the map layer by layerId
-tags$head(tags$script(HTML("
+    tags$head(tags$script(HTML("
   Shiny.addCustomMessageHandler(
     'removeleaflet',
     function(data){
@@ -31,23 +30,23 @@ tags$head(tags$script(HTML("
   )
 "))),
 
-#TODO need to look at moving scripts to external .js files
-# for putting JS externally
-#tags$head(tags$script(src = "handlers.js") ),
+    #TODO need to look at moving scripts to external .js files
+    #for putting JS externally
+    #tags$head(tags$script(src = "handlers.js") ),
 
-fileInput(ns("kmz_file"), "Load A .kmz File:",
-          accept = c(".kmz"), placeholder = "SECOND: Select a google earth (.kmz) file..."
-          ) |> shinyhelper::helper(type = "markdown",
-                                   content = "kmz_file_loader_help",
-                                   icon = "question-circle"),
-                                   textOutput(ns("fileDetails")),
- shinyWidgets::progressBar(id = ns("pb1"), value = 0, title = ""),
-leaflet::leafletOutput(ns("mymap"), height = 720),
-fileInput(ns("overlay_file"), "Load An Overlay:", accept = c(".kml"), placeholder = "Use this to add an overlay (.kml only...)"
-          ) |> shinyhelper::helper(type = "markdown",
-                                   content = "kml_overlay_loader_help",
-                                   icon = "question-circle"),
-                                   textOutput(ns("fileDetails"))
+    fileInput(ns("kmz_file"), "Load A .kmz File:",
+              accept = c(".kmz"), placeholder = "SECOND: Select a google earth (.kmz) file..."
+    ) |> shinyhelper::helper(type = "markdown",
+                             content = "kmz_file_loader_help",
+                             icon = "question-circle"),
+    textOutput(ns("fileDetails")),
+    shinyWidgets::progressBar(id = ns("pb1"), value = 0, title = ""),
+    leaflet::leafletOutput(ns("mymap"), height = 720),
+    fileInput(ns("overlay_file"), "Load An Overlay:", accept = c(".kml"), placeholder = "Use this to add an overlay (.kml only...)"
+    ) |> shinyhelper::helper(type = "markdown",
+                             content = "kml_overlay_loader_help",
+                             icon = "question-circle"),
+    textOutput(ns("fileDetails"))
   )
 }
 
@@ -63,7 +62,7 @@ mod_leaflet_map_server <- function(id, r){
     #shinyjs::disable("kmz_file")
     #shinyjs::hide("overlay_file")
 
-   observe({
+    observe({
       shinyWidgets::updateProgressBar(session = session, id = "pb1", value = 50, title = "Checking files in kmz & loading map.")
       files_extracted <- unzipKmz(input$kmz_file$datapath)
       shinyWidgets::updateProgressBar(session = session, id = "pb1", value = 75, title = "Loading image metadata")
@@ -81,31 +80,34 @@ mod_leaflet_map_server <- function(id, r){
 
     }) %>% bindEvent(input$kmz_file)
 
-   observe({
-     #myOverlayMap <- readr::read_file(input$overlay_file$datapath)
-     addMapOverlay(input$overlay_file)
+    observe({
+      #myOverlayMap <- readr::read_file(input$overlay_file$datapath)
+      addMapOverlay(input$overlay_file)
 
-     if(myEnv$config$showPopupAlerts == TRUE){
-     shinyWidgets::show_alert(
-       title = "Map Overlay Loaded!",
-       text = "Added the map overlay to the map panel.",
-       type = "info"
-     )
-     }
-   })%>% bindEvent(input$overlay_file)
+      if(myEnv$config$showPopupAlerts == TRUE){
+        shinyWidgets::show_alert(
+          title = "Map Overlay Loaded!",
+          text = "Added the map overlay to the map panel.",
+          type = "info"
+        )
+      }
+    })%>% bindEvent(input$overlay_file)
 
 
     #if the current image viewed changes
     observe({
       #print("current image changed: mod_leaflet_map")
-      req(r$current_image_metadata)
+      req(r$current_image_metadata, r$current_image)
+
+      r$current_map_zoom <- input$mymap_zoom
+
       addCurrentImageToMap()
 
       previous_annotations_map <- check_for_annotations(r$user_annotations_data, r$current_image)
 
       if(nrow(previous_annotations_map > 1)){
         #print("annotations already exist")
-          add_annotations_to_map()
+        add_annotations_to_map()
 
       }
 
@@ -127,8 +129,8 @@ mod_leaflet_map_server <- function(id, r){
       myId <- gsub("\\.", "",format(Sys.time(), "%Y%m%d-%H%M%OS3"))
       # Generate an ID based on the current date and time only if there's no existing ID
       if (is.null(feature$properties$id)) {
-         feature$properties$id <- myId
-         feature$properties$feature_type <- paste0(feature$geometry$type, "-map")
+        feature$properties$id <- myId
+        feature$properties$feature_type <- paste0(feature$geometry$type, "-map")
       }
 
       # now add feature to reactive so it can trigger in other modules
@@ -172,13 +174,13 @@ mod_leaflet_map_server <- function(id, r){
 
     # observe clicks on the map (kml) loaded when someone clicks on a yellow marker
     observe({
+      req(input$mymap_geojson_click)
       click <- input$mymap_geojson_click
       #print("geojson marker clicked")
       #print(click$properties$name)
       r$current_image <- paste0(click$properties$name)
       r$current_image_metadata <- get_image_metadata(r$imgs_metadata, r$current_image)
     }) %>% bindEvent(input$mymap_geojson_click)
-
 
     # refresh_leaflet_item when user clicks ApplySettingsButton
     observe({
