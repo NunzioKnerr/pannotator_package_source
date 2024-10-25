@@ -736,9 +736,9 @@ mod_control_form_server <- function(id, r){
           shinyjs::enable("export_annotations")
           shinyjs::enable("add_whole_image_annotation")
           #shinyjs::enable("applySettingsButton")
-          #str1 <- paste0("<b>Annotation File:</b> ", r$user_name, "s_annotations.rds")
-          str1 <- paste0("<b>Image File:</b> <small>", r$current_image, "</small><hr>")
-          HTML(paste(str1, sep ='<br/>'))
+          str1 <- paste0("<b>Annotation File:</b> ", r$user_name, "s_annotations.rds")
+          str2 <- paste0("<b>Image File:</b> <small>", r$current_image, "</small><hr>")
+          HTML(paste(str1, str2, sep ='<br/>'))
         }
         else {
           shinyjs::disable("export_annotations")

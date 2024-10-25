@@ -118,7 +118,10 @@ library(remotes)
 
 # to install a local version use this code: 
 # edit the path to point to your loacal version of the package.
-remotes::install_local(path = "pannotator_0.0.0.9001.tar.gz", dependencies = TRUE)  
+#remotes::install_local(path = "pannotator_0.0.1.0001.tar.gz", dependencies = TRUE)  
+
+# to install a from github use this code: 
+remotes::install_github("nunzioknerr/pannotator_package_source")
 ```
 
 ## Running the Package
