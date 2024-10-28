@@ -72,19 +72,10 @@ mod_control_form_ui <- function(id){
                  theme = shinythemes::shinytheme(myEnv$config$appTheme),
                  tabPanel(
                    title = "Main Settings",
-                   gridlayout::grid_container(
-                     layout = c(
-                       "mainSettings ."
-                     ),
-                     gap_size = "10px",
-                     col_sizes = c(
-                       "560px"
-                     ),
-                     row_sizes = c(
-                       "790px"
-                     ),
-                     gridlayout::grid_card(
-                       area = "mainSettings",
+                   bslib::layout_column_wrap(
+                     width = 1,
+                     gap = "10px",
+                     bslib::card(
                        bslib::card_body(
                          fillable = TRUE,
                          fill = TRUE,
@@ -430,19 +421,10 @@ mod_control_form_ui <- function(id){
                  ),
                  tabPanel(
                    title = "Lookups",
-                   gridlayout::grid_container(
-                     layout = c(
-                       "lookupSettings ."
-                     ),
-                     gap_size = "10px",
-                     col_sizes = c(
-                       "560px"
-                     ),
-                     row_sizes = c(
-                       "790px"
-                     ),
-                     gridlayout::grid_card(
-                       area = "lookupSettings",
+                   bslib::layout_column_wrap(
+                     width = 1,
+                     gap = "10px",
+                     bslib::card(
                        bslib::card_body(
                          fillable = TRUE,
                          fill = TRUE,
@@ -575,19 +557,10 @@ mod_control_form_ui <- function(id){
                  ),
                  tabPanel(
                    title = "About This Software",
-                   gridlayout::grid_container(
-                     layout = c(
-                       "aboutSettings ."
-                     ),
-                     gap_size = "10px",
-                     col_sizes = c(
-                       "560px"
-                     ),
-                     row_sizes = c(
-                       "790px"
-                     ),
-                     gridlayout::grid_card(
-                       area = "aboutSettings",
+                   bslib::layout_column_wrap(
+                     width = 1,
+                     gap = "10px",
+                     bslib::card(
                        bslib::card_header(""),
                        bslib::card_body(
                          fillable = TRUE,
@@ -634,6 +607,7 @@ mod_control_form_ui <- function(id){
     #########################
     # end of dropdownButton #
     #########################
+
 
     shinyWidgets::pickerInput(
       inputId =  ns("user_name"),

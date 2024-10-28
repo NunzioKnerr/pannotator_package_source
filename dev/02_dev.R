@@ -35,14 +35,12 @@ usethis::use_package("colourpicker")
 usethis::use_package("ggplot2")
 usethis::use_package("grDevices")
 usethis::use_package("jpeg")
-usethis::use_package("stringr")
 usethis::use_package("shinyFiles")
 usethis::use_package("readr")
 usethis::use_package("exiftoolr")
 usethis::use_package("utils")
 usethis::use_package("dplyr")
 usethis::use_package("magrittr")
-usethis::use_package("gridlayout")
 usethis::use_package("shinythemes")
 usethis::use_package("configr")
 usethis::use_pipe()
@@ -86,7 +84,7 @@ devtools::build_vignettes()
 #usethis::use_coverage()
 
 # Create a summary readme for the testthat subdirectory
-covrpage::covrpage()
+#covrpage::covrpage()
 
 ## CI ----
 ## Use this part of the script if you need to set up a CI
