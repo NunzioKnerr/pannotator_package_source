@@ -1,6 +1,6 @@
 Package: pannotator
 Title: Visualisation and Annotation of 360 Degree Imagery
-Version: 1.0.0.0003
+Version: 1.0.0.3
 Authors@R: c(
     person("Nunzio", "Knerr", , "Nunzio.Knerr@csiro.au", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-0562-9479")),
