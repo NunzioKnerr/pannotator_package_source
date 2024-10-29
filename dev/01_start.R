@@ -47,7 +47,7 @@ golem::fill_desc(
            role = "cph")
   ),
   repo_url = "https://github.com/NunzioKnerr/pannotator_package_source", # The URL of the GitHub repo (optional),
-  pkg_version = "1.0.0.0003", # The version of the package containing the app
+  pkg_version = "1.0.0.3", # The version of the package containing the app
   set_options = TRUE # Set the global golem options
 )
 
