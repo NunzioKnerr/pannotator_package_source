@@ -42,14 +42,17 @@ golem_add_external_resources <- function() {
     app_sys("app/www")
   )
 
+  add_resource_path(
+    "temp_dir",
+    tempdir() #tools::R_user_dir("pannotator")
+  )
+
   tags$head(
     favicon(),
     bundle_resources(
       path = app_sys("app/www"),
       app_title = "pannotator"
     )
-    # Add here other external resources
-    # for example, you can add shinyalert::useShinyalert()
   )
 }
 
@@ -60,7 +63,8 @@ was_projectSettingsFile_passed_in <- function() {
   # check if a projectSettingsFile is passed in with run_app() ie. run_app(projectSettingsFile = "C:/E/test-project.yml")
   projectOptions <- golem::get_golem_options()
   #View(projectOptions)
-  if(length(projectOptions) > 0){
+  #if(length(projectOptions) > 0){
+  if (!is.null(projectOptions$projectSettingsFile)) {
     #print("project SettingsFile passed in:")
     #print(projectOptions$projectSettingsFile)
 
@@ -86,7 +90,7 @@ was_projectSettingsFile_passed_in <- function() {
       destFile <- paste0("help",i,".pdf")
       fromPath <- normalizePath(file.path(myEnv$data_dir, myEnv$config[[lookupFile]]))
       #toPath <- normalizePath(file.path(app_sys("app/www"), myEnv$config[[lookupFile]]))
-      toPath <- normalizePath(file.path(app_sys("app/www"), destFile))
+      toPath <- normalizePath(file.path(tempdir(), destFile))
       #print(toPath)
       file.copy(fromPath, toPath, overwrite = TRUE)
     }
@@ -111,16 +115,16 @@ was_projectSettingsFile_passed_in <- function() {
   myEnv$config <- configr::read.config(myEnv$project_config_file)
 
   # List all PDF files in the directory
-  pdf_files <- list.files(app_sys("app/www"), pattern = "\\.pdf$", full.names = TRUE)
+  pdf_files <- list.files(tempdir(), pattern = "\\.pdf$", full.names = TRUE)
   # Delete each PDF file
   sapply(pdf_files, file.remove)
 
-  # copy help files to www location for linking in the browser
+  # copy help files to temp location for linking in the browser
   for (i in 1:4) {
     lookupFile <- paste0("lookup", i, "HelpFile")
     fromPath <- normalizePath(file.path(myEnv$data_dir, "/", myEnv$config[[lookupFile]]))
-    toPath <- file.path(app_sys("app/www"), myEnv$config[[lookupFile]])
+    toPath <- file.path(tempdir(), myEnv$config[[lookupFile]])
     file.copy(fromPath, toPath, overwrite = TRUE)
   }
-
+  #print(tempdir())
 }

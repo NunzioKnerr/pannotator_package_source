@@ -10,10 +10,6 @@
 mod_leaflet_map_ui <- function(id){
   ns <- NS(id)
 
-  # set options to allow for larger files to be loaded
-  options(digits=12)
-  options(shiny.maxRequestSize = 5000*1024^2) #sets the file size to 5000mb
-
   tagList(
 
     #this deletes the map layer by layerId
@@ -64,14 +60,22 @@ mod_leaflet_map_server <- function(id, r){
 
     observe({
       shinyWidgets::updateProgressBar(session = session, id = "pb1", value = 50, title = "Checking files in kmz & loading map.")
+
       files_extracted <- unzipKmz(input$kmz_file$datapath)
+
       shinyWidgets::updateProgressBar(session = session, id = "pb1", value = 75, title = "Loading image metadata")
-      r$imgs_metadata <- load_image_metadata(app_sys("/app/www/files"))
+      #r$imgs_metadata <- load_image_metadata(app_sys("/app/www/files"))
+      r$imgs_metadata <- load_image_metadata(file.path(tempdir(), "files"))
+      #View(r$imgs_metadata)
+
       shinyWidgets::updateProgressBar(session = session, id = "pb1", value = 100, title = files_extracted)
 
-      r$imgs_lst <- get_image_files(app_sys("/app/www/files"))
+      #r$imgs_lst <- get_image_files(app_sys("/app/www/files"))
+      r$imgs_lst <- get_image_files(file.path(tempdir(), "files"))
 
-      fName <- paste0(app_sys("/app/www/doc.kml"))
+      #fName <- paste0(app_sys("/app/www/doc.kml"))
+      fName <- file.path(tempdir(), "doc.kml")
+
       myKml <- readr::read_file(fName)
 
       output$mymap <- loadBaseLeafletMap(kml=myKml)
@@ -146,7 +150,6 @@ mod_leaflet_map_server <- function(id, r){
       #str <- sprintf("Edited feature with layerId: %s", editedFeatures)
       #print(str)
 
-      options(digits=9)
       myMarker <- geojsonsf::geojson_sf(jsonify::to_json(editedFeatures, unbox = TRUE, digits=9))
       geom <- sf::st_as_text(myMarker$geometry, digits=9)
 
@@ -186,7 +189,9 @@ mod_leaflet_map_server <- function(id, r){
     observe({
       #print("refresh_leaflet_item: map")
       req(r$refresh_user_config, r$current_image)
-      fName <- paste0(app_sys("/app/www/doc.kml"))
+      #fName <- paste0(app_sys("/app/www/doc.kml"))
+      temp_dir <- tempdir()
+      fName <- file.path(temp_dir, "/doc.kml")
       myKml <- readr::read_file(fName)
       output$mymap <- loadBaseLeafletMap(kml=myKml)
       addCurrentImageToMap()

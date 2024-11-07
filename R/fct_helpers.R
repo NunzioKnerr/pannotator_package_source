@@ -8,40 +8,41 @@
 #'
 #'
 # TODO
-# need to look at all usernames being changed on edits from file happened when un-hooked username to rds.
 # fix panellum displaying error on first load without image option - (DONE)
 # fix purple image (current image) staying when new new kmz - (DONE)
-# look at setting bounds for drawing on 360 images as currently one can draw polyons outside the pixels of the image
 # check latitude and longitude have - for S etc...(DONE)
 # check themes on all shinyWidgets - switching to bslib?
 # warning popup on change of lookups in the settings
 # possibly add a wait icon progressbar on export cropped images - (DONE)
 # fix icon on whole image icon not showing (DONE)
+# fix polygon fill opacity on export images (DONE)
+# add export cropped polygons from image - (DONE)
+# add geocode metadata to exported images - (DONE)
+# add help rmds - (DONE)
+# add text in control form for current image filename - (DONE)
+# add function for drawing overlay to PNG FOR PANNELLUM (STARTED)
+# need to look at all usernames being changed on edits from file happened when un-hooked username to rds.
+# look at setting bounds for drawing on 360 images as currently one can draw polygons outside the pixels of the image
 # fix stroke on polygons not show when stroke unchecked
 # fix settings panel horizontal scroll bar from appearing
-# make data load lowercase jpg and JPG when loading image metedata.
+# make data load lowercase jpg and JPG when loading image metadata.
 # move custom js to handlers.js file
-# add stoke /fill options for overlay maps in settings panel
+# add stoke/fill options for overlay maps in settings panel
 # add dashed line option for polygons
 # add warning popup when changing lookup settings
 # add click on images in the mapping panel to open them in the image panel
 # add collection of annotation items so they can all be collapsed together
-# add function for drawing overlay to PNG FOR PANNELLUM (STARTED),
 # add overlays to panellum
 # add dashed line option to polygons
-# add export cropped polygons from image - (DONE)
 # check white space around exported images from crops
-# add geocode metadata to exported images - (DONE)
 # add option to export png's and jpgs
 # add functions/button to delete all annotations for image.
 # add remove overlay button
 # add zoom to overlay button
 # zoom to extents of polygons drawn on map when r$current_image changes
-# add help rmds - (DONE),
 # write unit test functions
 # add 'restore defaults' button in settings for
-# add text in control form for current image filename - (DONE)
-# make kmz browse progress bars hide / switch to progressbar on exports.
+# make kmz browse progress bars hide/switch to progressbar on exports.
 # have warnings popup to reload page when changing username lookup file in settings
 # fix it so that the lookups default and work even if someone deletes the files from the system.
 # switch to |> instead of %>% pipes
@@ -466,8 +467,11 @@ clear_annotations_form <- function() {
 # Functions for mapping panel
 
 unzipKmz <- function(kmzFile){
-  kmlFile <- app_sys("/app/www/doc.kml")
-  filesFolder <- app_sys("/app/www/files")
+
+  # Set the paths to temporary directory
+  temp_dir <- tempdir()
+  kmlFile <- file.path(temp_dir, "doc.kml")
+  filesFolder <- file.path(temp_dir, "files")
   if(file.exists(kmlFile)){
     #print("A kmz has previously been loaded.....")
     unlink(kmlFile)
@@ -475,19 +479,19 @@ unzipKmz <- function(kmzFile){
     #print("The files have been deleted")
   }
 
-  #print("Unzipping new kmz file")
-  utils::unzip(kmzFile, list = FALSE, exdir = app_sys("/app/www"))
+  # Unzip the new KMZ file to tempdir
+  utils::unzip(kmzFile, list = FALSE, exdir = temp_dir)
 
   num_files <- length(list.files(filesFolder))
   #print(paste0(num_files, " image files extracted"))
   return(paste0(num_files, " image files extracted"))
 }
 
-removeKmzFiles <- function(){
-  #print("Removing old kmz files...")
-  unlink(app_sys("/app/www/doc.kml"), force = TRUE)
-  unlink(app_sys("/app/www/files"), recursive = TRUE, force = TRUE)
-}
+# removeKmzFiles <- function(){
+#   #print("Removing old kmz files...")
+#   unlink("/temp_dir/doc.kml", force = TRUE)
+#   unlink("/temp_dir/files", recursive = TRUE, force = TRUE)
+# }
 
 #adds a map overlay to the map for fire scars etc.
 addMapOverlay <- function(overlayMap){
@@ -770,7 +774,7 @@ loadBaseLeaflet360 <- function() {
 addCurrentImageToLeaflet360 <- function(){
   #print(paste0("addCurrentImageToLeaflet360 called: r$current_image: ", r$current_image))
   # Prepare the dynamic image URL
-  imageURL <- paste0("'/www/files/", r$current_image, "'")
+  imageURL <- paste0("'/temp_dir/files/", r$current_image, "'")
   # Define the bounds of the image
   imageWidth <- r$current_image_metadata$ImageWidth  # Width of the image
   imageHeight <- r$current_image_metadata$ImageHeight  # Height of the image
@@ -953,7 +957,7 @@ create_cropped_polygons_from_360_images <- function(annotations_export_dir){
 
   df_polygons <- r$current_annotation_360polygons
 
-  image_path <- paste0(app_sys("app/www/files"), "/", r$current_image)
+  image_path <- paste0(tempdir(),"/files/", r$current_image)
   img <- jpeg::readJPEG(image_path)
 
   img_raster <- grDevices::as.raster(img)
@@ -984,26 +988,27 @@ create_cropped_polygons_from_360_images <- function(annotations_export_dir){
           # Both stroke and fill enabled
           p <- p + ggplot2::geom_sf(
             data = polygons_sf[i, ],
-            color = myEnv$config$pano360PolygonStrokeColour,
+            color = scales::alpha(myEnv$config$pano360PolygonStrokeColour, myEnv$config$pano360PolygonStrokeOpacity),
             fill = myEnv$config$pano360PolygonFillColour,
             linewidth = myEnv$config$pano360PolygonStrokeWeight,
-            alpha = myEnv$config$pano360PolygonStrokeOpacity
+            alpha = myEnv$config$pano360PolygonFillOpacity
           )
         } else if (myEnv$config$showPano360PolygonStrokeInCropExport) {
           # Only stroke enabled
           p <- p + ggplot2::geom_sf(
             data = polygons_sf[i, ],
-            color = myEnv$config$pano360PolygonStrokeColour,
+            color = scales::alpha(myEnv$config$pano360PolygonStrokeColour, myEnv$config$pano360PolygonStrokeOpacity),
             fill = NA,
-            linewidth = myEnv$config$pano360PolygonStrokeWeight,
-            alpha = myEnv$config$pano360PolygonStrokeOpacity
+            linewidth = myEnv$config$pano360PolygonStrokeWeight#,
+            #alpha = myEnv$config$pano360PolygonStrokeOpacity
           )
         } else if (myEnv$config$showPano360PolygonFillInCropExport) {
           # Only fill enabled
           p <- p + ggplot2::geom_sf(
             data = polygons_sf[i, ],
             color = NA,
-            fill = myEnv$config$pano360PolygonFillColour
+            fill = myEnv$config$pano360PolygonFillColour,
+            alpha = myEnv$config$pano360PolygonFillOpacity
           )
         }
 

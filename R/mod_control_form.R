@@ -608,7 +608,6 @@ mod_control_form_ui <- function(id){
     # end of dropdownButton #
     #########################
 
-
     shinyWidgets::pickerInput(
       inputId =  ns("user_name"),
       label = "User Name",
@@ -622,12 +621,13 @@ mod_control_form_ui <- function(id){
     htmlOutput(ns("infoText")),
 
     tags$h2("Help Files:"),
+
     # buttons for help files
-    actionButton(inputId = ns("lookup1_help"), label = paste0(myEnv$config$lookup1Label, " Help"), icon = icon("question-circle"), onclick =paste0("window.open(' ./www/", "help1.pdf","', '_blank') ")),
-    actionButton(inputId = ns("lookup2_help"), label = paste0(myEnv$config$lookup2Label, " Help"), icon = icon("question-circle"), onclick =paste0("window.open(' ./www/", "help2.pdf","', '_blank') ")),
-    actionButton(inputId = ns("lookup3_help"), label = paste0(myEnv$config$lookup3Label, " Help"), icon = icon("question-circle"), onclick =paste0("window.open(' ./www/", "help3.pdf","', '_blank') ")),
-    actionButton(inputId = ns("lookup4_help"), label = paste0(myEnv$config$lookup4Label, " Help"), icon = icon("question-circle"), onclick =paste0("window.open(' ./www/", "help4.pdf","', '_blank') ")),
-    # actionButton(inputId = ns("lookup4_help"), label = paste0(myEnv$config$lookup4Label, " Help"), icon = icon("question-circle"), onclick =paste0("window.open(' ./www/", myEnv$config$lookup4HelpFile,"', '_blank') ")),
+    actionButton(inputId = ns("lookup1_help"), label = paste0(myEnv$config$lookup1Label, " Help"), icon = icon("question-circle"), onclick =paste0("window.open(' ./temp_dir/", "help1.pdf","', '_blank') ")),
+    actionButton(inputId = ns("lookup2_help"), label = paste0(myEnv$config$lookup2Label, " Help"), icon = icon("question-circle"), onclick =paste0("window.open(' ./temp_dir/", "help2.pdf","', '_blank') ")),
+    actionButton(inputId = ns("lookup3_help"), label = paste0(myEnv$config$lookup3Label, " Help"), icon = icon("question-circle"), onclick =paste0("window.open(' ./temp_dir/", "help3.pdf","', '_blank') ")),
+    actionButton(inputId = ns("lookup4_help"), label = paste0(myEnv$config$lookup4Label, " Help"), icon = icon("question-circle"), onclick =paste0("window.open(' ./temp_dir/", "help4.pdf","', '_blank') ")),
+
     tags$hr(),
 
     tags$div(style="align-content:end",
@@ -1320,7 +1320,6 @@ mod_control_form_server <- function(id, r){
       #print(str)
 
       # Convert the feature with the new ID to a sf object
-      options(digits=9)
       myMarker <- geojsonsf::geojson_sf(jsonify::to_json(r$new_leafletMap_item, unbox = TRUE, digits=9))
       geom <- sf::st_as_text(myMarker$geometry, digits=9)
       geomType <- r$new_leafletMap_item$properties$feature_type
@@ -1350,7 +1349,6 @@ mod_control_form_server <- function(id, r){
       #print(str)
 
       # Convert the feature with the new ID to a sf object
-      options(digits=9)
       myMarker <- geojsonsf::geojson_sf(jsonify::to_json(r$new_leaflet360_item, unbox = TRUE, digits=9))
       geom <- sf::st_as_text(myMarker$geometry, digits=9)
       geomType <- r$new_leaflet360_item$properties$feature_type

@@ -33,9 +33,24 @@ request to determine whether the \code{ui} should be used to handle the
 request. Note that the entire request path must match the regular
 expression in order for the match to be considered successful.}
 
-\item{...}{arguments to pass to golem_opts.
-See `?golem::get_golem_options` for more details.}
+\item{...}{Additional arguments to pass to `golem_opts`. See `?golem::get_golem_options` for more details.}
+}
+\value{
+No return value, called for side effects. Launches the Shiny app.
 }
 \description{
-Run the Shiny Application
+`run_app()` starts the Shiny application contained in this package, with an option to load settings from a YAML file using additional option: projectSettingsFile = "pathToYamlFile".
+}
+\details{
+This function initializes and runs the Shiny app developed with the golem framework.
+It optionally loads application-specific settings from a YAML file, which can be useful for project-specific configurations.
+}
+\examples{
+if (interactive()) {
+  # Example: Run the application with default settings
+  run_app()
+
+  # Example: Run the application with a specific YAML configuration file
+  run_app(projectSettingsFile = "C:/test-project.yml")
+}
 }
