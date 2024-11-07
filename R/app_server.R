@@ -9,7 +9,7 @@ app_server <- function(input, output, session) {
 
   shinyhelper::observe_helpers(help_dir = app_sys("/app/www/helpfiles"))
 
-  removeKmzFiles()
+  #removeKmzFiles()
 
   mod_control_form_server("control_form", r)
   mod_leaflet_map_server("leaflet_map", r)

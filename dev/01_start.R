@@ -21,7 +21,7 @@
 golem::fill_desc(
   pkg_name = "pannotator",
   pkg_title = "Visualisation and Annotation of 360 Degree Imagery",
-  pkg_description = "Provides a customisable R 'shiny' app for immersively visualising, mapping and annotating panospheric (360 degree) imagery. The flexible interface allows annotation of any geocoded images using up to 4 user specified dropdown menus. The app uses 'leaflet' to render maps that display the geo-locations of images and panellum <https://pannellum.org/>, a lightweight panorama viewer for the web, to render images in virtual 360 degree viewing mode. Key functions include the ability to draw on & export parts of 360 images for downstream applications. Users can also draw polygons and points on map imagery related to the panoramic images and export them for further analysis. Downstream applications include using annotations to train AI/ML models and geospatial modelling and analysis of camera based survey data.",
+  pkg_description = "Provides a customisable R 'shiny' app for immersively visualising, mapping and annotating panospheric (360 degree) imagery. The flexible interface allows annotation of any geocoded images using up to 4 user specified dropdown menus. The app uses 'leaflet' to render maps that display the geo-locations of images and panellum <https://pannellum.org/>, a lightweight panorama viewer for the web, to render images in virtual 360 degree viewing mode. Key functions include the ability to draw on & export parts of 360 images for downstream applications. Users can also draw polygons and points on map imagery related to the panoramic images and export them for further analysis. Downstream applications include using annotations to train Artificial Intelligence/Machine Learning (AI/ML) models and geospatial modelling and analysis of camera based survey data.",
   authors = c(
     person(
       given = "Nunzio", # Your First Name
@@ -47,7 +47,7 @@ golem::fill_desc(
            role = "cph")
   ),
   repo_url = "https://github.com/NunzioKnerr/pannotator_package_source", # The URL of the GitHub repo (optional),
-  pkg_version = "1.0.0.3", # The version of the package containing the app
+  pkg_version = "1.0.0.4", # The version of the package containing the app
   set_options = TRUE # Set the global golem options
 )
 

@@ -95,19 +95,27 @@ mod_360_image_server <- function(id, r){
       ###############################################
       # version for if overlays drawn on 360 as png
       # Remove the .jpg extension and replace with .png to check for its existence
-      png_version <- gsub(".jpg", ".png", r$current_image)
+      #png_version <- gsub(".jpg", ".png", r$current_image)
 
       # Check if the PNG file exists in the 'files/' directory
-      if (file.exists(paste0(app_sys("app/www/files"), "/", png_version))) {
-        image_to_use <- png_version
-      } else {
-        image_to_use <- r$current_image
-      }
+      # if (file.exists(paste0(app_sys("app/www/files"), "/", png_version))) {
+      #   image_to_use <- png_version
+      # } else {
+      #   image_to_use <- r$current_image
+      #   print(r$current_image)
+      #   #temp_dir <- tempdir()
+      #   #image_to_use <- file.path(temp_dir, r$current_image)
+      # }
+
+      image_to_use <- paste0("/temp_dir/files/", r$current_image)
+      #print(r$current_image)
+      #temp_dir <- tools::R_user_dir("pannotator")
 
       # Construct the URL using the determined image file
-      src_url <- paste0("www/pannellum.htm#panorama=",
-                        "files/", image_to_use,
+      src_url <- paste0("www/pannellum.htm#panorama=", image_to_use,
                         "&autoLoad=true&autoRotate=0&ignoreGPanoXMP=true")
+
+      #print(utils::URLencode(src_url))
       ###############################################
 
       ## Construct the iframe URL
@@ -261,7 +269,6 @@ mod_360_image_server <- function(id, r){
       #print("removing edited one")
       #clear_drawn_annotation_from_leaflet(session, layerId)  # pass the correct layer ID
 
-      options(digits=9)
       myMarker <- geojsonsf::geojson_sf(jsonify::to_json(editedFeatures, unbox = TRUE, digits=9))
       geom <- sf::st_as_text(myMarker$geometry, digits=9)
 
