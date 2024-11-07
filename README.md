@@ -110,7 +110,7 @@ To run the application use the following code.
 ``` r
 library(pannotator)
 
-options(shiny.port = httpuv::randomPort(), shiny.launch.browser = .rs.invokeShinyWindowExternal)
+options(shiny.port = httpuv::randomPort(), shiny.launch.browser = .rs.invokeShinyWindowExternal, shiny.maxRequestSize = 5000 * 1024^2)
 
 run_app()
 ```
