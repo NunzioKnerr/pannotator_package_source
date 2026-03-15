@@ -59,9 +59,8 @@ mod_control_form_ui <- function(id){
 
     tags$div(style="margin:5px",
 
-             ###################################
-             # config form in drop down button #
-             ###################################
+             # config form in drop down button ----
+
              shinyWidgets::dropdownButton(
 
                navbarPage(
@@ -604,10 +603,8 @@ mod_control_form_ui <- function(id){
                tooltip = shinyWidgets::tooltipOptions(title = "Click to set app configurations!")
              )
     ),
-    #########################
-    # end of dropdownButton #
-    #########################
 
+    # username select ----
     shinyWidgets::pickerInput(
       inputId =  ns("user_name"),
       label = "User Name",
@@ -622,7 +619,7 @@ mod_control_form_ui <- function(id){
 
     tags$h2("Help Files:"),
 
-    # buttons for help files
+    # buttons for help files ----
     actionButton(inputId = ns("lookup1_help"), label = paste0(myEnv$config$lookup1Label, " Help"), icon = icon("question-circle"), onclick =paste0("window.open(' ./temp_dir/", "help1.pdf","', '_blank') ")),
     actionButton(inputId = ns("lookup2_help"), label = paste0(myEnv$config$lookup2Label, " Help"), icon = icon("question-circle"), onclick =paste0("window.open(' ./temp_dir/", "help2.pdf","', '_blank') ")),
     actionButton(inputId = ns("lookup3_help"), label = paste0(myEnv$config$lookup3Label, " Help"), icon = icon("question-circle"), onclick =paste0("window.open(' ./temp_dir/", "help3.pdf","', '_blank') ")),
@@ -648,7 +645,7 @@ mod_control_form_server <- function(id, r){
   moduleServer( id, function(input, output, session){
     ns <- session$ns
 
-    # Clean up when the app close
+    # Clean up when the app close ----
     onStop(function(){
       #print("Doing application cleanup\n")
       r$imgs_lst <- NULL
@@ -676,7 +673,6 @@ mod_control_form_server <- function(id, r){
       shinyjs::hide("lookup4_help")
     }
 
-
     if(myEnv$config$showPopupAlerts == TRUE){
       shinyWidgets::show_alert(
         title = "Configure The App",
@@ -685,7 +681,7 @@ mod_control_form_server <- function(id, r){
       )
     }
 
-    #event triggered on selecting username
+    #event triggered on selecting username ----
     observe({
       r$user_name <- stringr::str_squish(input$user_name)
       req(r$user_name, myEnv$data_dir, myEnv$config$annotationsFile)
@@ -702,7 +698,7 @@ mod_control_form_server <- function(id, r){
       }
     }) %>% bindEvent(input$user_name)
 
-    # output for text info
+    # output for text info ----
     output$infoText <- renderUI({
       req(r$user_name, r$current_image )
       if(nchar(r$user_name)>0){
@@ -722,15 +718,11 @@ mod_control_form_server <- function(id, r){
       }
     })
 
-    #####################################
-    #    Observers for form settings    #
-    #####################################
-
-    #event triggered on clear all annotations button
+    # event triggered on clear all annotations button ----
   observeEvent(input$clearAllButton, ignoreInit = TRUE, {
       #print("Clear All Annotations Button Clicked")
 
-    # Trigger SweetAlert confirmation popup
+    # Trigger SweetAlert confirmation popup ----
     shinyWidgets::confirmSweetAlert(
       session = session,
       inputId = ns("confirm_clear"),
@@ -748,7 +740,7 @@ mod_control_form_server <- function(id, r){
 
     })
 
-    # Respond to SweetAlert confirmation
+    # Respond to SweetAlert confirmation ----
     observeEvent(input$confirm_clear, {
       if (isTRUE(input$confirm_clear)) {
         # If user clicked 'Yes', reload the session
@@ -778,7 +770,7 @@ mod_control_form_server <- function(id, r){
     })
 
 
-    #changes to config form
+    # changes to config form ----
     observeEvent(input$appTheme, ignoreInit = TRUE, {
       req(r$config)
       r$config["appTheme"] <- input$appTheme
@@ -786,10 +778,9 @@ mod_control_form_server <- function(id, r){
       save_user_config("appTheme")
     })
 
-    ########################################
-    # dynamically change the sliders
-    ########################################
-    # observe for mapPanelWidth
+    # dynamically change the sliders #
+
+    # observe for mapPanelWidth ----
     observeEvent(input$mapPanelWidth, ignoreInit = TRUE, {
       req(r$config)
       #r$config["mapPanelWidth"] <- input$mapPanelWidth
@@ -857,7 +848,7 @@ mod_control_form_server <- function(id, r){
       }
     })
 
-    # observe for panoPanelWidth
+    # observe for panoPanelWidth ----
     observeEvent(input$panoPanelWidth, ignoreInit = TRUE, {
       req(r$config)
       #r$config["panoPanelWidth"] <- input$panoPanelWidth
@@ -888,7 +879,7 @@ mod_control_form_server <- function(id, r){
       #save_user_config("mapPanelWidth")  # Save the mapPanelWidth if it was adjusted
     })
 
-    # observe for formPanelWidth
+    # observe for formPanelWidth ----
     observeEvent(input$formPanelWidth, ignoreInit = TRUE, {
       req(r$config)
       #r$config["formPanelWidth"] <- input$formPanelWidth
@@ -935,9 +926,7 @@ mod_control_form_server <- function(id, r){
       )
     })
 
-
-    # map settings observers
-    ##########################
+    # map settings observers ----
     observeEvent(input$mapPanelSource, ignoreInit = TRUE, {
       req(r$config)
       r$config["mapPanelSource"] <- input$mapPanelSource
@@ -1008,8 +997,8 @@ mod_control_form_server <- function(id, r){
       save_user_config("mapPolygonFillOpacity")
     })
 
-    #Pano 360 Panel observes
-    ########################
+    #Pano 360 Panel observers ----
+
     observeEvent(input$pano360IconColour, ignoreInit = TRUE, {
       req(r$config)
       r$config["pano360IconColour"] <- input$pano360IconColour
@@ -1109,8 +1098,7 @@ mod_control_form_server <- function(id, r){
       save_user_config("exportFileFormat")
     })
 
-    # look ups settings observers
-    #############################
+    # look ups settings observers ----
     observeEvent(input$lookup1Label, ignoreInit = TRUE, {
       req(r$config)
       r$config["lookup1Label"] <- input$lookup1Label
@@ -1281,9 +1269,8 @@ mod_control_form_server <- function(id, r){
     })
 
     # end settings panels observers
-    ####################################
 
-    #add new whole image annotation record button clicked
+    #add new whole image annotation record button clicked ----
     observe({
       #print("add a whole image annotation clicked")
       req(r$current_image, r$current_image_metadata, r$user_name)
@@ -1312,7 +1299,8 @@ mod_control_form_server <- function(id, r){
 
     }) %>% bindEvent(input$add_whole_image_annotation)
 
-    # when new map item added, listening for both button clicked in form OR item drawn in map panel
+    # when new map item added ----
+    # listening for both button clicked in form OR item drawn in map panel
     observe({
       #print("new map item added: mod_control_form")
 
@@ -1370,27 +1358,8 @@ mod_control_form_server <- function(id, r){
 
     }) %>% bindEvent(r$new_leaflet360_item)
 
-    # when save annotations button is clicked
-    # observe({
-    #     print("save annotations clicked")
-    #     req(r$user_annotations_data, r$user_annotations_file_name)
-    #     save_annotations(myAnnotations=r$user_annotations_data, myAnnotationFileName = r$user_annotations_file_name)
-    #  if(myEnv$config$showPopupAlerts == TRUE){
-    #if(myEnv$config$showPopupAlerts == TRUE){
-    #     shinyWidgets::show_alert(
-    #       title = "Annotation Saved!",
-    #       text = "Awesome, saved the annotation, select another image and annotate it.",
-    #       type = "success"
-    #     )
-    #}
-    #  }
-    #
-    # }) %>% bindEvent(input$save_annotations)
 
-
-    #######################################
-
-    #check if there are any annotations for a selected image already
+    #check if there are any annotations for a selected image already ----
     observe({
       #print("current image changed: mod_control_form")
       req(r$user_annotations_data, r$current_image)
@@ -1419,7 +1388,7 @@ mod_control_form_server <- function(id, r){
       }
     }) %>% bindEvent(r$current_image)
 
-    #export annotations button
+    #export annotations button ----
     observe({
       req(r$user_annotations_file_name,  r$user_annotations_data)
       #home_dir <- fs::path_home()
@@ -1473,9 +1442,7 @@ mod_control_form_server <- function(id, r){
 
     }) %>% bindEvent(input$export_annotations)
 
-
-
-    # refresh_the form triggered when the apply settings button is clicked and user changes settings
+    # refresh form on apply settings button ----
     observe({
       #print("refresh_for_item: control_form")
       req(r$refresh_user_config, r$user_annotations_data, r$current_image)
@@ -1500,15 +1467,8 @@ mod_control_form_server <- function(id, r){
 
       }
 
-
     }) %>% bindEvent(r$refresh_user_config)
 
 
   })
 }
-
-## To be copied in the UI
-# mod_control_form_ui("control_form")
-
-## To be copied in the server
-# mod_control_form_server("control_form")

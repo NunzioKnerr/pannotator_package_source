@@ -15,5 +15,5 @@ golem::document_and_reload(pkg = ".")
 run_app()
 #run_app(options=list(launch.browser = TRUE))
 
-#run_app(projectSettingsFile = "C:/E/test-project.yml")
+#run_app(projectSettingsFile = "C:/E/pannotator_project/test-project.yml")
 

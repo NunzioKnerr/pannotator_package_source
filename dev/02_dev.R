@@ -11,15 +11,12 @@
 #### CURRENT FILE: DEV SCRIPT #####
 ###################################
 
-# Engineering
-
 ## Dependencies ----
 ## Amend DESCRIPTION with dependencies read from package code parsing
 ## install.packages('attachment') # if needed.
 attachment::att_amend_desc()
 
 usethis::use_package("leaflet")
-usethis::use_package("leaflet.extras")
 usethis::use_package("leafpm")
 usethis::use_package("geojsonsf")
 usethis::use_package("htmlwidgets")
@@ -48,9 +45,9 @@ usethis::use_pipe()
 
 ## Add modules ----
 ## Create a module infrastructure in R/
-golem::add_module(name = "control_form", with_test = FALSE, open = FALSE) # Name of the module
-golem::add_module(name = "leaflet_map", with_test = FALSE, open = FALSE) # Name of the module
-golem::add_module(name = "360_image", with_test = FALSE, open = FALSE)
+#golem::add_module(name = "control_form", with_test = FALSE, open = FALSE) # Name of the module
+#golem::add_module(name = "leaflet_map", with_test = FALSE, open = FALSE) # Name of the module
+#golem::add_module(name = "360_image", with_test = FALSE, open = FALSE)
 
 ## Add helper functions ----
 ## Creates fct_* and utils_*
@@ -78,7 +75,7 @@ golem::add_fct("helpers", with_test = TRUE, open = FALSE)
 
 ## Vignette ----
 usethis::use_vignette("pannotator")
-devtools::build_vignettes()
+#devtools::build_vignettes()
 
 ## Code Coverage----
 ## Set the code coverage service ("codecov" or "coveralls")

@@ -7,12 +7,13 @@
 #' @noRd
 #'
 #' @importFrom shiny NS tagList
+
 mod_leaflet_map_ui <- function(id){
   ns <- NS(id)
 
   tagList(
 
-    #this deletes the map layer by layerId
+    #this deletes the map layer by layerId ----
     tags$head(tags$script(HTML("
   Shiny.addCustomMessageHandler(
     'removeleaflet',
@@ -25,24 +26,17 @@ mod_leaflet_map_ui <- function(id){
     }
   )
 "))),
-
-    #TODO need to look at moving scripts to external .js files
-    #for putting JS externally
-    #tags$head(tags$script(src = "handlers.js") ),
-
+    # kmz file select ----
     fileInput(ns("kmz_file"), "Load A .kmz File:",
               accept = c(".kmz"), placeholder = "SECOND: Select a google earth (.kmz) file..."
     ) |> shinyhelper::helper(type = "markdown",
                              content = "kmz_file_loader_help",
                              icon = "question-circle"),
-    textOutput(ns("fileDetails")),
-    shinyWidgets::progressBar(id = ns("pb1"), value = 0, title = ""),
-    leaflet::leafletOutput(ns("mymap"), height = 720),
+    leaflet::leafletOutput(ns("mymap"), height = 660),
     fileInput(ns("overlay_file"), "Load An Overlay:", accept = c(".kml"), placeholder = "Use this to add an overlay (.kml only...)"
     ) |> shinyhelper::helper(type = "markdown",
                              content = "kml_overlay_loader_help",
-                             icon = "question-circle"),
-    textOutput(ns("fileDetails"))
+                             icon = "question-circle")
   )
 }
 
@@ -58,32 +52,37 @@ mod_leaflet_map_server <- function(id, r){
     #shinyjs::disable("kmz_file")
     #shinyjs::hide("overlay_file")
 
+    #kmz file select observer ----
     observe({
-      shinyWidgets::updateProgressBar(session = session, id = "pb1", value = 50, title = "Checking files in kmz & loading map.")
+      req(input$kmz_file)
 
-      files_extracted <- unzipKmz(input$kmz_file$datapath)
+      withProgress(message = "Loading KMZ", value = 0, {
+        # 1) Unzip and prep
+        setProgress(0.5, detail = "Getting images")
+        files_extracted <- unzipKmz(input$kmz_file$datapath)
 
-      shinyWidgets::updateProgressBar(session = session, id = "pb1", value = 75, title = "Loading image metadata")
-      #r$imgs_metadata <- load_image_metadata(app_sys("/app/www/files"))
-      r$imgs_metadata <- load_image_metadata(file.path(tempdir(), "files"))
-      #View(r$imgs_metadata)
+        # 2) Load image metadata
+        setProgress(0.75, detail = "Loading image metadata")
+        r$imgs_metadata <- load_image_metadata(file.path(tempdir(), "files"))
 
-      shinyWidgets::updateProgressBar(session = session, id = "pb1", value = 100, title = files_extracted)
+        # 3) List images
+        setProgress(0.9, detail = "Indexing image files")
+        r$imgs_lst <- get_image_files(file.path(tempdir(), "files"))
 
-      #r$imgs_lst <- get_image_files(app_sys("/app/www/files"))
-      r$imgs_lst <- get_image_files(file.path(tempdir(), "files"))
+        # 4) Read KML + draw map
+        setProgress(0.95, detail = "Reading KML & map")
+        fName <- file.path(tempdir(), "doc.kml")
+        myKml <- readr::read_file(fName)
 
-      #fName <- paste0(app_sys("/app/www/doc.kml"))
-      fName <- file.path(tempdir(), "doc.kml")
+        output$mymap <- loadBaseLeafletMap(kml = myKml)
+        golem::invoke_js("showid", "image_panel")
 
-      myKml <- readr::read_file(fName)
-
-      output$mymap <- loadBaseLeafletMap(kml=myKml)
-      #shinyjs::show("overlay_file")
-      golem::invoke_js("showid", "image_panel")
-
+        # 5) Done
+        setProgress(1, detail = files_extracted)
+      })
     }) %>% bindEvent(input$kmz_file)
 
+    #overlay file observer ----
     observe({
       #myOverlayMap <- readr::read_file(input$overlay_file$datapath)
       addMapOverlay(input$overlay_file)
@@ -97,8 +96,7 @@ mod_leaflet_map_server <- function(id, r){
       }
     })%>% bindEvent(input$overlay_file)
 
-
-    #if the current image viewed changes
+    #current image changes observer ----
     observe({
       #print("current image changed: mod_leaflet_map")
       req(r$current_image_metadata, r$current_image)
@@ -117,8 +115,7 @@ mod_leaflet_map_server <- function(id, r){
 
     }) %>% bindEvent(r$current_image)
 
-
-    # triggered when item added using drawToolbar
+    # triggered when item added using drawToolbar ----
     observe({
       feature <- input$mymap_draw_new_feature
       req(feature, r$current_image)  # Make sure there is a new feature before proceeding
@@ -142,7 +139,7 @@ mod_leaflet_map_server <- function(id, r){
 
     }) %>% bindEvent(input$mymap_draw_new_feature)  # Make sure to bind to the drawing event
 
-    # triggered when item edited using drawToolbar
+    # item edited using drawToolbar observer ----
     observe({
       editedFeatures <- input$mymap_draw_edited_features
       req(editedFeatures)  # Make sure there is an edited feature before proceeding
@@ -160,32 +157,41 @@ mod_leaflet_map_server <- function(id, r){
 
     }) %>% bindEvent(input$mymap_draw_edited_features)  # Ensure the observe event triggers upon feature edits
 
-    # triggered to add a single item to the map from control form
+    # add single item to the map from control form observer ----
     observe({
       #print("new map item: leaflet")
       req(r$new_leafletMap_item)
       add_annotations_to_map()
     }) %>% bindEvent(r$new_leafletMap_item)
 
-
-    # remove_leafletMap_item
+    # remove_leafletMap_item observer ----
     observe({
       #print("remove_map_item: leaflet")
       req(r$remove_leafletMap_item)
       remove_map_item()
     }) %>% bindEvent(r$remove_leafletMap_item)
 
-    # observe clicks on the map (kml) loaded when someone clicks on a yellow marker
+    # click leaflet circle markers observer ----
+    # CHANGE: Handle clicks from leaflet circle markers/shapes after replacing
+    # leaflet.extras::addKML with sf + leaflet rendering.
     observe({
-      req(input$mymap_geojson_click)
-      click <- input$mymap_geojson_click
-      #print("geojson marker clicked")
-      #print(click$properties$name)
-      r$current_image <- paste0(click$properties$name)
-      r$current_image_metadata <- get_image_metadata(r$imgs_metadata, r$current_image)
-    }) %>% bindEvent(input$mymap_geojson_click)
+      clicked_image <- NULL
 
-    # refresh_leaflet_item when user clicks ApplySettingsButton
+      if (!is.null(input$mymap_marker_click$id)) {
+        clicked_image <- input$mymap_marker_click$id
+      } else if (!is.null(input$mymap_shape_click$id)) {
+        clicked_image <- input$mymap_shape_click$id
+      } else if (!is.null(input$mymap_geojson_click$properties$name)) {
+        # Compatibility fallback for any legacy geojson click payloads.
+        clicked_image <- input$mymap_geojson_click$properties$name
+      }
+
+      req(clicked_image)
+      r$current_image <- paste0(clicked_image)
+      r$current_image_metadata <- get_image_metadata(r$imgs_metadata, r$current_image)
+    }) %>% bindEvent(input$mymap_marker_click, input$mymap_shape_click, input$mymap_geojson_click)
+
+    # refresh_leaflet_item when user clicks ApplySettingsButton observer ----
     observe({
       #print("refresh_leaflet_item: map")
       req(r$refresh_user_config, r$current_image)
@@ -200,9 +206,3 @@ mod_leaflet_map_server <- function(id, r){
 
   })
 }
-
-## To be copied in the UI
-# mod_leaflet_map_ui("leaflet_map")
-
-## To be copied in the server
-# mod_leaflet_map_server("leaflet_map")
