@@ -7,46 +7,6 @@
 #' @noRd
 #'
 #'
-# TODO
-# fix panellum displaying error on first load without image option - (DONE)
-# fix purple image (current image) staying when new new kmz - (DONE)
-# check latitude and longitude have - for S etc...(DONE)
-# check themes on all shinyWidgets - switching to bslib?
-# warning popup on change of lookups in the settings
-# possibly add a wait icon progressbar on export cropped images - (DONE)
-# fix icon on whole image icon not showing (DONE)
-# fix polygon fill opacity on export images (DONE)
-# add export cropped polygons from image - (DONE)
-# add geocode metadata to exported images - (DONE)
-# add help rmds - (DONE)
-# add text in control form for current image filename - (DONE)
-# add function for drawing overlay to PNG FOR PANNELLUM (STARTED)
-# need to look at all usernames being changed on edits from file happened when un-hooked username to rds.
-# look at setting bounds for drawing on 360 images as currently one can draw polygons outside the pixels of the image
-# fix stroke on polygons not show when stroke unchecked
-# fix settings panel horizontal scroll bar from appearing
-# make data load lowercase jpg and JPG when loading image metadata.
-# move custom js to handlers.js file
-# add stoke/fill options for overlay maps in settings panel
-# add dashed line option for polygons
-# add warning popup when changing lookup settings
-# add click on images in the mapping panel to open them in the image panel
-# add collection of annotation items so they can all be collapsed together
-# add overlays to panellum
-# add dashed line option to polygons
-# check white space around exported images from crops
-# add option to export png's and jpgs
-# add functions/button to delete all annotations for image.
-# add remove overlay button
-# add zoom to overlay button
-# zoom to extents of polygons drawn on map when r$current_image changes
-# write unit test functions
-# add 'restore defaults' button in settings for
-# make kmz browse progress bars hide/switch to progressbar on exports.
-# have warnings popup to reload page when changing username lookup file in settings
-# fix it so that the lookups default and work even if someone deletes the files from the system.
-# switch to |> instead of %>% pipes
-# TODO
 
 # save the user config
 save_user_config <- function(config_var){
@@ -325,7 +285,7 @@ add_annotations_form <- function(input, myActiveAnnotations, myId, myFeatureType
         ),style = "overflow: visible; min-height: 50px;"
       ),
     )
-  ) %>% insertUI(selector = "#add_here", where = "beforeEnd")
+  ) %>% insertUI(selector = "#add_here", where = "afterBegin") #beforeEnd
 
   # Create observer for deleting the annotation card
   observe({
@@ -463,8 +423,165 @@ clear_annotations_form <- function() {
   }
 }
 
-################################
-# Functions for mapping panel
+# Functions for mapping panel ----
+
+# CHANGE: Replaces leaflet.extras KML rendering with sf + leaflet so we can
+# remove leaflet.extras while keeping map behavior in both Google and non-Google modes.
+read_kml_to_sf <- function(kml_input, is_file = FALSE) {
+  if (is.null(kml_input) || !nzchar(kml_input)) {
+    return(NULL)
+  }
+
+  kml_path <- kml_input
+  if (!isTRUE(is_file)) {
+    kml_path <- tempfile(fileext = ".kml")
+    writeLines(kml_input, con = kml_path, useBytes = TRUE)
+    on.exit(unlink(kml_path), add = TRUE)
+  }
+
+  if (!file.exists(kml_path)) {
+    return(NULL)
+  }
+
+  layer_names <- tryCatch(sf::st_layers(kml_path)$name, error = function(e) character(0))
+
+  sf_layers <- if (length(layer_names) > 0) {
+    lapply(layer_names, function(layer_name) {
+      tryCatch(sf::st_read(kml_path, layer = layer_name, quiet = TRUE), error = function(e) NULL)
+    })
+  } else {
+    list(tryCatch(sf::st_read(kml_path, quiet = TRUE), error = function(e) NULL))
+  }
+
+  sf_layers <- sf_layers[!vapply(sf_layers, is.null, logical(1))]
+  if (length(sf_layers) == 0) {
+    return(NULL)
+  }
+
+  sf_obj <- sf_layers[[1]]
+  if (length(sf_layers) > 1) {
+    for (i in 2:length(sf_layers)) {
+      sf_obj <- dplyr::bind_rows(sf_obj, sf_layers[[i]])
+    }
+  }
+
+  if (nrow(sf_obj) == 0) {
+    return(NULL)
+  }
+
+  # CHANGE: Drop Z/M dimensions from KML geometries to avoid leaflet bbox/limits
+  # issues when overlays include 3D coordinates.
+  sf_obj <- tryCatch(sf::st_zm(sf_obj, drop = TRUE, what = "ZM"), error = function(e) sf_obj)
+
+  crs_obj <- sf::st_crs(sf_obj)
+  # CHANGE: Force lon/lat CRS for leaflet even when EPSG is missing but CRS exists.
+  if (!is.na(crs_obj) && !sf::st_is_longlat(sf_obj)) {
+    sf_obj <- sf::st_transform(sf_obj, 4326)
+  }
+
+  sf_obj
+}
+
+# CHANGE: Shared KML-to-leaflet renderer used by both base map and overlay map paths.
+add_kml_layer <- function(map, kml_input, group,
+                          layer_id_prefix = "kml",
+                          label_property = "name",
+                          point_color = "yellow",
+                          point_fill_color = "yellow",
+                          point_fill_opacity = 1,
+                          point_radius = 5,
+                          point_stroke = FALSE,
+                          line_color = "#a6f31f",
+                          line_weight = 5,
+                          polygon_color = "#a6f31f",
+                          polygon_weight = 5,
+                          polygon_fill_opacity = 0.5,
+                          show_point_labels = TRUE) {
+  sf_obj <- read_kml_to_sf(kml_input)
+  if (is.null(sf_obj) || nrow(sf_obj) == 0) {
+    return(map)
+  }
+
+  id_column <- if (label_property %in% names(sf_obj)) label_property else NULL
+  if (is.null(id_column) && "Name" %in% names(sf_obj)) {
+    id_column <- "Name"
+  }
+
+  layer_ids <- if (!is.null(id_column)) as.character(sf_obj[[id_column]]) else rep(NA_character_, nrow(sf_obj))
+  missing_id <- is.na(layer_ids) | layer_ids == ""
+  layer_ids[missing_id] <- paste0(layer_id_prefix, "-", which(missing_id))
+
+  geom_types <- as.character(sf::st_geometry_type(sf_obj, by_geometry = TRUE))
+  is_point <- grepl("POINT", geom_types)
+  is_line <- grepl("LINESTRING", geom_types)
+  is_polygon <- grepl("POLYGON", geom_types)
+  non_empty <- !sf::st_is_empty(sf_obj)
+  drawable <- non_empty
+
+  if (any(is_point & drawable)) {
+    point_data <- sf_obj[is_point & drawable, ]
+    point_ids <- layer_ids[is_point & drawable]
+    point_labels <- if (isTRUE(show_point_labels)) point_ids else NULL
+
+    map <- tryCatch(
+      map %>% leaflet::addCircleMarkers(
+        data = point_data,
+        layerId = point_ids,
+        group = group,
+        color = point_color,
+        stroke = point_stroke,
+        fillColor = point_fill_color,
+        fillOpacity = point_fill_opacity,
+        radius = point_radius,
+        label = point_labels
+      ),
+      error = function(e) map
+    )
+  }
+
+  if (any(is_line & drawable)) {
+    # CHANGE: Guard against malformed KML line geometries that can break
+    # leaflet::addPolylines via bbox expansion.
+    line_data <- sf_obj[is_line & drawable, ]
+    # CHANGE: Add each line feature independently so a single malformed line
+    # does not prevent other polylines in the same KML from rendering.
+    for (i in seq_len(nrow(line_data))) {
+      map <- tryCatch(
+        map %>% leaflet::addPolylines(
+          data = line_data[i, , drop = FALSE],
+          # CHANGE: Do not set layerId for line overlays because repeated KML
+          # names can overwrite prior features when IDs collide.
+          group = group,
+          color = line_color,
+          weight = line_weight
+        ),
+        error = function(e) map
+      )
+    }
+  }
+
+  if (any(is_polygon & drawable)) {
+    polygon_data <- sf_obj[is_polygon & drawable, ]
+    # CHANGE: Add each polygon independently for the same resilience reason as lines.
+    for (i in seq_len(nrow(polygon_data))) {
+      map <- tryCatch(
+        map %>% leaflet::addPolygons(
+          data = polygon_data[i, , drop = FALSE],
+          # CHANGE: Do not set layerId for polygon overlays because repeated KML
+          # names can overwrite prior features when IDs collide.
+          group = group,
+          color = polygon_color,
+          weight = polygon_weight,
+          fillColor = polygon_color,
+          fillOpacity = polygon_fill_opacity
+        ),
+        error = function(e) map
+      )
+    }
+  }
+
+  map
+}
 
 unzipKmz <- function(kmzFile){
 
@@ -497,10 +614,25 @@ unzipKmz <- function(kmzFile){
 addMapOverlay <- function(overlayMap){
   myOverlayMap <- readr::read_file(overlayMap$datapath)
   myMapProxy <- leaflet::leafletProxy("mymap") %>%
-    leaflet.extras::addKMLChoropleth(
-      myOverlayMap, layerId = "Overlay", group = "Overlay",
-      valueProperty = NULL,
-      color = "#a6f31f", weight = 5, fillOpacity = 0.5) %>%
+    # CHANGE: Keep a single overlay render by clearing prior overlay features.
+    leaflet::clearGroup("Overlay") %>%
+    # CHANGE: Previously used leaflet.extras::addKMLChoropleth.
+    add_kml_layer(
+      kml_input = myOverlayMap,
+      group = "Overlay",
+      layer_id_prefix = "Overlay",
+      point_color = "#a6f31f",
+      point_fill_color = "#a6f31f",
+      point_fill_opacity = 0.7,
+      point_radius = 5,
+      point_stroke = FALSE,
+      line_color = "#a6f31f",
+      line_weight = 5,
+      polygon_color = "#a6f31f",
+      polygon_weight = 5,
+      polygon_fill_opacity = 0.5,
+      show_point_labels = FALSE
+    ) %>%
     leaflet::addLayersControl(overlayGroups = c("360-Images", "Overlay", "Whole-Image-Annotations", "Map-Annotations"), options = leaflet::layersControlOptions(collapsed = TRUE))
   return(myMapProxy)
 }
@@ -517,9 +649,24 @@ loadBaseLeafletMap <- function(kml="") {
       leaflet::leaflet(options = leaflet::leafletOptions(minZoom = 2, maxZoom = 18)) %>%
         leaflet::setMaxBounds(lng1 = -180, lat1 = -90, lng2 = 180, lat2 = 90) %>%
         leaflet::addTiles(urlTemplate = paste0("https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}&key=", myEnv$config$mapAPIKey, maxZoom = 18), attribution = 'Map data &copy; Google') %>%
-        leaflet.extras::addKML(kml, layerId = "my_kml", group ="360-Images" ,  markerType = "circleMarker",
-                               stroke = FALSE, fillColor = "yellow", fillOpacity = 1,
-                               markerOptions = leaflet::markerOptions(interactive = TRUE, clickable = TRUE, radius = 5, riseOnHover = TRUE, riseOffset = 250), labelProperty = "name") %>%
+        # CHANGE: Previously used leaflet.extras::addKML for KMZ image markers.
+        add_kml_layer(
+          kml_input = kml,
+          group = "360-Images",
+          layer_id_prefix = "my_kml",
+          label_property = "name",
+          point_color = "yellow",
+          point_fill_color = "yellow",
+          point_fill_opacity = 1,
+          point_radius = 5,
+          point_stroke = FALSE,
+          line_color = "yellow",
+          line_weight = 2,
+          polygon_color = "yellow",
+          polygon_weight = 2,
+          polygon_fill_opacity = 0.4,
+          show_point_labels = TRUE
+        ) %>%
         leafpm::addPmToolbar(targetGroup = "Map-Annotations",
                              toolbarOptions = leafpm::pmToolbarOptions(drawMarker = TRUE,
                                                                        drawPolygon = TRUE,
@@ -544,9 +691,24 @@ loadBaseLeafletMap <- function(kml="") {
       leaflet::leaflet(options = leaflet::leafletOptions(minZoom = 2, maxZoom = 17)) %>%
         leaflet::setMaxBounds(lng1 = -180, lat1 = -90, lng2 = 180, lat2 = 90) %>%
         leaflet::addProviderTiles(eval(parse(text=paste0("leaflet::providers$", myEnv$config$mapPanelSource)))) %>%
-        leaflet.extras::addKML(kml, layerId = "my_kml", group ="360-Images" ,  markerType = "circleMarker",
-                               stroke = FALSE, fillColor = "yellow", fillOpacity = 1,
-                               markerOptions = leaflet::markerOptions(interactive = TRUE, clickable = TRUE, radius = 5, riseOnHover = TRUE, riseOffset = 250), labelProperty = "name") %>%
+        # CHANGE: Previously used leaflet.extras::addKML for KMZ image markers.
+        add_kml_layer(
+          kml_input = kml,
+          group = "360-Images",
+          layer_id_prefix = "my_kml",
+          label_property = "name",
+          point_color = "yellow",
+          point_fill_color = "yellow",
+          point_fill_opacity = 1,
+          point_radius = 5,
+          point_stroke = FALSE,
+          line_color = "yellow",
+          line_weight = 2,
+          polygon_color = "yellow",
+          polygon_weight = 2,
+          polygon_fill_opacity = 0.4,
+          show_point_labels = TRUE
+        ) %>%
         leafpm::addPmToolbar(targetGroup = "Map-Annotations",
                              toolbarOptions = leafpm::pmToolbarOptions(drawMarker = TRUE,
                                                                        drawPolygon = TRUE,
@@ -580,7 +742,8 @@ addCurrentImageToMap <- function(){
   zoom <- as.numeric(r$current_map_zoom)
 
   myMapProxy <- leaflet::leafletProxy("mymap") %>%
-    leaflet::clearMarkers() %>%
+    # CHANGE: Do not clear all markers here, because KMZ image markers are now
+    # leaflet markers (not a separate geojson layer) and must remain visible.
     leaflet::removeMarker(layerId = "currentImage") %>% # remove the purple cirlce marker
     leaflet::clearGroup("Map-Annotations") %>%
     leaflet::clearGroup("Whole-Image-Annotations") %>%
@@ -741,8 +904,8 @@ remove_360_item <- function(){
 
   return(my360Proxy)
 }
-########################################
-# Functions for 360 image panel
+
+# Functions for 360 image panel ----
 # Function to load the base 360 leaflet
 loadBaseLeaflet360 <- function() {
 
@@ -916,41 +1079,6 @@ clear_drawn_annotation_from_360 <- function(session, layerId) {
   session$sendCustomMessage("removeleaflet360", list(elid = "pano360_image-leaflet360", layerId = layerId))
 }
 
-########################################
-# create map icons for use on the map
-create_map_icons <- function() {
-  #myEnv$config$mapIconColour <- "DarkRed"
-  #myEnv$config$pano360IconColour <- "navy"
-  #myEnv$config$pano360MarkerColour <- "white"
-  #myEnv$config$mapMarkerColour <- "white"
-
-  myIcons <- leaflet::awesomeIconList(
-    wholeImageMapIcon = leaflet::makeAwesomeIcon(icon = "ion-image", library = "ion", iconColor =  myEnv$config$mapIconColour, markerColor = myEnv$config$mapMarkerColour),#ios-world-outline
-    pointMapIcon = leaflet::makeAwesomeIcon(icon = "map-marked-alt", library = "fa", iconColor =  myEnv$config$mapIconColour, markerColor = myEnv$config$mapMarkerColour),
-    polygonMapIcon = leaflet::makeAwesomeIcon(icon = "draw-polygon", library = "fa",iconColor =  myEnv$config$mapIconColour, markerColor = myEnv$config$mapMarkerColour),
-    point360Icon = leaflet::makeAwesomeIcon(icon = "map-marked-alt", library = "fa",iconColor =  myEnv$config$pano360IconColour, markerColor = myEnv$config$pano360MarkerColour),
-    polygon360Icon = leaflet::makeAwesomeIcon(icon = "draw-polygon", library = "fa",iconColor =  myEnv$config$pano360IconColour, markerColor = myEnv$config$pano360MarkerColour)
-  )
-  return(myIcons)
-}
-
-#create from icons for using in the control form and map/360 popups
-create_form_icons <- function() {
-  #myEnv$config$mapIconColour <- "DarkRed"
-  #myEnv$config$pano360IconColour <- "navy"
-  formIcons <- list(
-    wholeImageMapFormIcon = paste0("<i class='ionicons ion-image' style='color: ", myEnv$config$mapIconColour, "; background-color: transparent;'></i>"),
-    pointMapFormIcon = paste0("<i class='fa fa-map-marked-alt' style='color: ", myEnv$config$mapIconColour, "; background-color: transparent;'></i>"),
-    polygonMapFormIcon = paste0("<i class='fa fa-draw-polygon' style='color: ", myEnv$config$mapIconColour, "; background-color: transparent;'></i>"),
-    point360FormIcon = paste0("<i class='fa fa-map-marked-alt' style='color: ", myEnv$config$pano360IconColour, "; background-color: transparent;'></i>"),
-    polygon360FormIcon = paste0("<i class='fa fa-draw-polygon' style='color: ", myEnv$config$pano360IconColour, "; background-color: transparent;'></i>")
-  )
-  return(formIcons)
-}
-
-
-##############
-
 # function for outputting cropped polygons
 create_cropped_polygons_from_360_images <- function(annotations_export_dir){
   req(r$user_annotations_data, r$current_annotation_360polygons, r$current_image)
@@ -1036,4 +1164,34 @@ create_cropped_polygons_from_360_images <- function(annotations_export_dir){
     }) #withProgress
   }
   #return("success")
+}
+
+# Icon functions ----
+create_map_icons <- function() {
+  #myEnv$config$mapIconColour <- "DarkRed"
+  #myEnv$config$pano360IconColour <- "navy"
+  #myEnv$config$pano360MarkerColour <- "white"
+  #myEnv$config$mapMarkerColour <- "white"
+
+  myIcons <- leaflet::awesomeIconList(
+    wholeImageMapIcon = leaflet::makeAwesomeIcon(icon = "ion-image", library = "ion", iconColor =  myEnv$config$mapIconColour, markerColor = myEnv$config$mapMarkerColour),#ios-world-outline
+    pointMapIcon = leaflet::makeAwesomeIcon(icon = "map-marked-alt", library = "fa", iconColor =  myEnv$config$mapIconColour, markerColor = myEnv$config$mapMarkerColour),
+    polygonMapIcon = leaflet::makeAwesomeIcon(icon = "draw-polygon", library = "fa",iconColor =  myEnv$config$mapIconColour, markerColor = myEnv$config$mapMarkerColour),
+    point360Icon = leaflet::makeAwesomeIcon(icon = "map-marked-alt", library = "fa",iconColor =  myEnv$config$pano360IconColour, markerColor = myEnv$config$pano360MarkerColour),
+    polygon360Icon = leaflet::makeAwesomeIcon(icon = "draw-polygon", library = "fa",iconColor =  myEnv$config$pano360IconColour, markerColor = myEnv$config$pano360MarkerColour)
+  )
+  return(myIcons)
+}
+
+create_form_icons <- function() {
+  #myEnv$config$mapIconColour <- "DarkRed"
+  #myEnv$config$pano360IconColour <- "navy"
+  formIcons <- list(
+    wholeImageMapFormIcon = paste0("<i class='ionicons ion-image' style='color: ", myEnv$config$mapIconColour, "; background-color: transparent;'></i>"),
+    pointMapFormIcon = paste0("<i class='fa fa-map-marked-alt' style='color: ", myEnv$config$mapIconColour, "; background-color: transparent;'></i>"),
+    polygonMapFormIcon = paste0("<i class='fa fa-draw-polygon' style='color: ", myEnv$config$mapIconColour, "; background-color: transparent;'></i>"),
+    point360FormIcon = paste0("<i class='fa fa-map-marked-alt' style='color: ", myEnv$config$pano360IconColour, "; background-color: transparent;'></i>"),
+    polygon360FormIcon = paste0("<i class='fa fa-draw-polygon' style='color: ", myEnv$config$pano360IconColour, "; background-color: transparent;'></i>")
+  )
+  return(formIcons)
 }
