@@ -31,6 +31,9 @@ devtools::build()
 devtools::check_win_devel()
 
 devtools::release()
+
+devtools::document()
+
 ## Docker ----
 ## If you want to deploy via a generic Dockerfile
 # golem::add_dockerfile_with_renv()
