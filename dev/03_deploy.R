@@ -18,6 +18,7 @@
 devtools::check()
 devtools::check(cran = TRUE)
 #rhub::rhub_check()
+#?rhub::rhubv2
 
 devtools::build_manual()
 # Deploy
@@ -26,8 +27,10 @@ devtools::build_manual()
 ## This will build a tar.gz that can be installed locally,
 ## sent to CRAN, or to a package manager
 devtools::build()
+
 devtools::check_win_devel()
 
+devtools::release()
 ## Docker ----
 ## If you want to deploy via a generic Dockerfile
 # golem::add_dockerfile_with_renv()
