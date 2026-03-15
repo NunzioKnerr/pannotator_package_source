@@ -1,51 +1,34 @@
-
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
 # `{pannotator}`
 
 <!-- badges: start -->
 
-[![Lifecycle:
-experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
-[![Codecov test
-coverage](https://codecov.io/gh/NunzioKnerr/pannotator/graph/badge.svg)](https://app.codecov.io/gh/NunzioKnerr/pannotator)
+[![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental) [![Codecov test coverage](https://codecov.io/gh/NunzioKnerr/pannotator/graph/badge.svg)](https://app.codecov.io/gh/NunzioKnerr/pannotator)
 
 <!-- badges: end -->
 
 ## pannotator
 
-The Panospheric Image Annotator in R (pannotator) software package
-provides an easy-to-use interface for visualising 360 degree camera
-images on satellite imagery and annotating the images with data selected
-from user-defined drop-down menus. It is designed for use in ecological
-and biogeographical research but can be used to extract data from any
-spatially explicit 360 degree camera imagery. This vignette provides an
-overview of the functionality of the package, including setup and
-configuration, interface layout, image selection, drop-down menu
-specification, annotation of image files, and exporting data.
+The Panospheric Image Annotator in R (pannotator) software package provides an easy-to-use interface for visualising 360 degree camera images on satellite imagery and annotating the images with data selected from user-defined drop-down menus. It is designed for use in ecological and biogeographical research but can be used to extract data from any spatially explicit 360 degree camera imagery. This vignette provides an overview of the functionality of the package, including setup and configuration, interface layout, image selection, drop-down menu specification, annotation of image files, and exporting data.
 
 ## Installation
 
 ### Minimum Requirements
 
-To use this package, please ensure your system meets the following
-minimum requirements:
+To use this package, please ensure your system meets the following minimum requirements:
 
-- **R version**: 4.4.0 or higher
+-   **R version**: 4.4.0 or higher
 
-- **RStudio version**: 2024.04.2+764 or higher
+-   **RStudio version**: 2024.04.2+764 or higher
 
-- **Shiny version**: 1.9.1 or higher
+-   **Shiny version**: 1.9.1 or higher
 
-Additionally, ensure that all necessary system dependencies are
-installed for optimal performance.
+Additionally, ensure that all necessary system dependencies are installed for optimal performance.
 
 Below is some code to help ensure all dependencies are met:
 
-The software makes extensive use of ExifTool by Phil Harvey
-([Exiftool.org](https://exiftool.org/)). To make installation of
-ExifTool accessible in R there is a package exiftoolr that you must
-install by running the code below.
+The software makes extensive use of ExifTool by Phil Harvey ([Exiftool.org](https://exiftool.org/)). To make installation of ExifTool accessible in R there is a package exiftoolr that you must install by running the code below.
 
 ``` r
 # First check if you have exiftoolr installed
@@ -61,8 +44,7 @@ if (check_for_package == "") {
 }
 ```
 
-Now that you have installed exiftoolr we can check to make sure that
-ExifTool is on your system.
+Now that you have installed exiftoolr we can check to make sure that ExifTool is on your system.
 
 ``` r
 library(exiftoolr)  
@@ -78,8 +60,7 @@ if (exists("check_for_ExifTool")) {
 }
 ```
 
-You must also install the ‘remotes’ package which we will use to install
-the pannotator package.
+You must also install the "remotes" package which we will use to install the pannotator package.
 
 ``` r
 check_for_package <-  system.file(package = "remotes")
@@ -115,8 +96,7 @@ options(shiny.port = httpuv::randomPort(), shiny.launch.browser = .rs.invokeShin
 run_app()
 ```
 
-Once run, the above code will popup a browser window with the shiny
-application inside it.
+Once run, the above code will popup a browser window with the shiny application inside it.
 
 ## Help Vignette
 
