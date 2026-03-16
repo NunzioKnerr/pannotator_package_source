@@ -11,3 +11,4 @@ $run_dev.*
 ^Meta$
 ^codecov\.yml$
 ^cran-comments\.md$
+^CRAN-SUBMISSION$

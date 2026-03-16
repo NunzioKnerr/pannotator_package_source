@@ -1,5 +1,5 @@
 
-# pannotator (version 1.0.0.6)
+# pannotator (version 1.0.1)
 
 * Replaced leaflet.extras dependency.
 * Reordered new dropdowns to appear at top.
