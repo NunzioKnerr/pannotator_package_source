@@ -54,7 +54,6 @@ Imports:
     shinyFiles,
     shinyhelper,
     shinyjs,
-    shinythemes,
     shinyWidgets,
     stringr,
     tools,

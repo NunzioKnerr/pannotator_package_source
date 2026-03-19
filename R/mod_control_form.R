@@ -68,7 +68,7 @@ mod_control_form_ui <- function(id){
                  id = "tabset-default-id",
                  selected = "Main Settings",
                  collapsible = TRUE,
-                 theme = shinythemes::shinytheme(myEnv$config$appTheme),
+                 theme = get_app_theme(),
                  tabPanel(
                    title = "Main Settings",
                    bslib::layout_column_wrap(
@@ -109,35 +109,8 @@ mod_control_form_ui <- function(id){
                            width = "95%",
                            selected = myEnv$config$appTheme,
                            choices = allThemes <- c("cerulean", "cosmo", "cyborg", "darkly",
-                                                    "flatly", "journal", "lumen", "paper", "readable", "sandstone", "simplex", "slate", "spacelab", "superhero", "united", "yeti"),#shinythemes:::allThemes(),
+                                                    "flatly", "journal", "lumen", "paper", "readable", "sandstone", "simplex", "slate", "spacelab", "superhero", "united", "yeti"),
                            selectize = FALSE
-                         ),
-                         tags$script(
-                           "$('#control_form-appTheme')
-        .on('change', function(el) {
-        var allThemes = $(this).find('option').map(function() {
-        if ($(this).val() === 'default')
-        return 'bootstrap';
-        else
-        return $(this).val();
-        });
-        // Find the current theme
-        var curTheme = el.target.value;
-        if (curTheme === 'default') {
-        curTheme = 'bootstrap';
-        curThemePath = 'shared/bootstrap/css/bootstrap.min.css';
-        } else {
-        curThemePath = 'shinythemes/css/' + curTheme + '.min.css';
-        }
-        // Find the <link> element with that has the bootstrap.css
-        var $link = $('link').filter(function() {
-        var theme = $(this).attr('href');
-        theme = theme.replace(/^.*\\//, '').replace(/(\\.min)?\\.css$/, '');
-        return $.inArray(theme, allThemes) !== -1;
-        });
-        // Set it to the correct path
-        $link.attr('href', curThemePath);
-        });"
                          ),
                          fluidRow(
                            column(4,
@@ -757,6 +730,7 @@ mod_control_form_server <- function(id, r){
     observeEvent(input$applySettingsButton, ignoreInit = TRUE, {
       #print("Apply Settings Button Clicked")
       myEnv$config <- configr::read.config(myEnv$project_config_file)
+      session$setCurrentTheme(get_app_theme())
       #r$refresh_user_config <- TRUE
       refresh_user_config(session)
     })

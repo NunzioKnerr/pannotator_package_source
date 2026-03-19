@@ -15,6 +15,7 @@ app_ui <- function(request) {
     shinyjs::useShinyjs(),
     # Your application UI logic
     fluidPage(
+      theme = get_app_theme(),
       br(),
       fluidRow(
         column(myEnv$config$mapPanelWidth, wellPanel(
@@ -25,6 +26,19 @@ app_ui <- function(request) {
     )
   )
 
+}
+
+get_app_theme <- function() {
+  theme_name <- myEnv$config$appTheme
+
+  if (is.null(theme_name) || !nzchar(theme_name)) {
+    theme_name <- "cerulean"
+  }
+
+  bslib::bs_theme(
+    version = 5,
+    bootswatch = theme_name
+  )
 }
 
 
