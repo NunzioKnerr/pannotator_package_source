@@ -1,69 +1,213 @@
+#' ---
+#' title: "pannotator"
+#' output: rmarkdown::html_vignette
+#' vignette: >
+#'   %\VignetteIndexEntry{pannotator}
+#'   %\VignetteEngine{knitr::rmarkdown}
+#'   %\VignetteEncoding{UTF-8}
+#' ---
+#'
 ## ----include = FALSE----------------------------------------------------------
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
 
+#'
+#' # Introductory Vignette
+#'
+#' The Panospheric Image Annotator in R (pannotator) software package provides an easy-to-use interface for visualising 360-degree camera images on satellite or map imagery and annotating the images with data selected from user-defined dropdown menus. It also allows the user to draw points, rectangles and complex polygons on 360-degree images and satellite or other map images, export geolocation and other annotation data for these geometries, and export geocoded cropped sub-images (patches) for use in other applications. It is designed for use in ecological and biogeographical research but can be used to extract data from any spatially explicit 360 degree camera imagery. This vignette provides an overview of the functionality of the package, including setup and configuration, interface layout, image selection, dropdown menu specification, annotation of image files, cropping sub-images and exporting data.
+#'
+#' ## Running the Package
+#'
+#' To run the application use the following code.
+#'
 ## ----setup, echo=TRUE, eval=FALSE, results='hold', warning=FALSE, include=TRUE----
-#  library(pannotator)
-#  
-#  options(shiny.port = httpuv::randomPort(), shiny.launch.browser = .rs.invokeShinyWindowExternal)
-#  
-#  run_app()
+#
+# library(pannotator)
+#
+# options(shiny.port = httpuv::randomPort(), shiny.launch.browser = .rs.invokeShinyWindowExternal, shiny.maxRequestSize = 9000 * 1024^2)
+#
+# run_app()
+#
+# # Optional: launch with a project-specific YAML file
+# # run_app(projectSettingsFile = "C:/path/to/project.yml")
 
+#'
+#' By default `run_app()` uses the current user settings stored by the package. If you export a project YAML from the Settings panel you can pass it back into `run_app(projectSettingsFile = ...)` to reopen the app with project-specific panel layout, lookup, and styling preferences.
+#'
+#' ## User Interface Layout
+#'
+#' The current pannotator interface is organised around a workspace with three primary panels across the top row and an annotation table across the full width below. The Mapping Panel contains the `.kmz` loader, overlay controls, Leaflet map, and map drawing tools. The Image Panel contains the image selector, 360-degree viewing mode, drawing mode, and crop export tools. The Annotation Panel contains the user selector, active image and annotation file information, help buttons for enabled lookups, export tools, and the annotation cards associated with whole-image, map, and image geometries. The Annotation Table panel provides a single place to review annotation records across images and geometries.
+#'
+#' Settings are now separate from the Annotation Panel itself. They can be shown below the workspace or opened as a left or right drawer, depending on the current layout setting.
+#'
+#' ![Example pannotator workspace showing the top-row Mapping, Image, and Annotation panels.](Images/Figure1_small.jpg){fig-align="center" width="95%"}
+#'
+#' ### Setup and Configuration
+#'
+#' The Settings area now provides a persistent configuration workflow instead of a pop-up menu. A compact control strip at the top of Settings contains the `Show workflow guidance notices` option, a `Clear All Annotations Data` button, and `Apply Changes`. Messages such as lookup-table saves and pending layout changes appear above the settings tabs so they remain visible regardless of which tab is open.
+#'
+#' The `Main Settings` tab is grouped into accordion sections:
+#'
+#' 1.  `System Dependencies`: checks whether ExifTool is installed and can install it when supported. ExifTool is required for reading image metadata from `.kmz` imagery.
+#' 2.  `Project Settings`: exports the current settings to a project YAML file for use with `run_app(projectSettingsFile = ...)`. This section also supports an export-only Google Maps API key so a project YAML can be written with `mapPanelSource: Google.Maps` without storing that key in the regular user settings.
+#' 3.  `Layout Settings`: controls where Settings are displayed (`Below Main Panels` or `Settings Drawer`), which side the drawer opens from, the app theme, light/dark mode, and the relative widths of the Mapping, Image, and Annotation panels.
+#' 4.  `Mapping Panel Settings`: controls the basemap and map geometry styles.
+#' 5.  `Image Panel Settings`: controls styling for points, rectangles, and polygons drawn on flattened equirectangular images, including whether polygon stroke and fill appear in exported crop images.
+#' 6.  `Annotation Panel Settings`: controls the username lookup file and the annotation export format.
+#' 7.  `Annotation Table Settings`: documents how the full-width annotation table uses the enabled lookup structure.
+#'
+#' ![Main settings accordion sections, including layout, theme, username, and annotation table options.](Images/Figure2_small.jpg){fig-align="center" width="95%"}
+#'
+#' The `Lookups` tab now uses accordions for each lookup. Lookup 1 is always available, while Lookups 2 to 4 can be enabled or disabled. Each lookup includes a label, a `.csv` file selector, an optional in-place editor button for the lookup table, and a `.pdf` help-file selector (Figure 3). The lookup `.csv` file has two columns: `display` and `value`. The `display` text appears in the Annotation Panel while the `value` is written to the exported data. Help buttons are shown in the Annotation Panel only for lookups that are currently enabled.
+#'
+#' The username table uses the same pattern. A `.csv` file can be selected for usernames, and the table can be opened for in-place editing when required.
+#'
+#' ![Lookup accordion and in-place lookup table editor.](Images/Figure3_small.jpg){fig-align="center" width="95%"}
+#'
+#' **Note**: once changes have been made to settings and configurations you can update them by clicking the `Apply Changes` button.
+#'
+#' **Warning! If you change and update Lookup tables while in the process of annotating images, the structure of the annotation dataframe and exported annotation data will also change. This may affect the validity of data.**
+#'
+#' ## Mapping Panel
+#'
+#' The Mapping Panel allows the user to open a `.kmz` file and render it using the [Leaflet](https://leafletjs.com/) open source javascript library for mobile-friendly interactive maps. Once a `.kmz` has been loaded, the geolocations of all images are shown on the basemap (Figure 4, left), which is useful for visualising the layout of sampling transects or points associated with each `.kmz` file. The geolocation of the current image opened in the Image Panel is highlighted in purple. The panel also contains a button for adding overlays (for example, fire history or vegetation type layers) to the map (Figure 4, right).
+#'
+#' ![Mapping window (left) with overlay function (right).](Images/Figure4_small.jpg){fig-align="center" width="95%"}
+#'
+#' The window contains zoom in and zoom out buttons, a toolbar for drawing on the map and editing geometries, options for hiding various mapping layers, and the leaflet measure plugin (Figure 5A) which can be used to determine the distance of any feature from the location of a selected image or any other point on the map and calculate areas.
+#'
+#' ![Tools for (A) distance and area measurement and addition of (B) point markers, (C) rectangles, and (D) polygons. The location of an example whole image annotation marker, which can be added in the Annotation Panel, is shown in (E).](Images/Figure5_small.jpg){fig-align="center" width="95%"}
+#'
+#' The drawing toolbar allows the user to drop specific geolocation point markers (Figure 5B), rectangles (Figure 5C), and complex polygons (Figure 5D) that can then be annotated from the Annotation Panel. The appearance of these geometries can be altered in the `Mapping Panel Settings` section of Main Settings. The toolbar also contains options to move and edit all geometric objects. Whole-image annotation markers (Figure 5E) are added from the Annotation Panel.
+#'
+#' When a geometry is created by the user a linked dropdown menu appears in the Annotation Panel (see below) in which you can add data annotations. An object ID is also automatically generated based on the timestamp. In the Mapping Panel separate icons are now provided for geolocation point markers (map pin icon), whole image markers (image card; whole image markers identify the geographic location of the 360-degree image presented in the Image Panel), and polygons/rectangles (draw polygon icon) (Figure 5B-E). These icons also appear in the accompanying dropdown menus in the Annotation Panel (see below). When any geometric object is rolled over in the Mapping Panel the object ID is shown as a label, and if the geometry is clicked on the coloured icon type (i.e., point, polygon) is shown as well as the object ID (examples in Figure 5C-D). If multiple whole image annotations are created (and hence multiple markers linked to one underlying image and location) these will cluster on the map; the number of annotations/markers is indicated inside the cluster. When the cluster is clicked, the icons will spiderfy (i.e., explode or pop out) so that the markers can be individually selected (Figure 5E). The geolocation of whole image annotations cannot be changed, they will always retain the geolocation of the image they were assigned to.
+#'
+#' Finally, elements shown in the Mapping Panel are grouped according to (1) all 360 images from a `.kmz` file and the current image, (2) overlays, (3) whole-image annotation markers, and (4) map annotation markers and polygons. Each group has a checkbox to toggle visibility.
+#'
+#' ## Image Panel
+#'
+#' The Image Panel has two modes: `Viewing Mode` and `Drawing Mode`. The user switches between these modes using the button in the top-right corner of the panel.
+#'
+#' ### Viewing Mode
+#'
+#' In Viewing Mode the Pannellum web viewer loads an equirectangular image selected from the `.kmz` file using the `Image to Annotate` dropdown menu and renders it in interactive 360-degree viewing mode. The panel has buttons for zoom in, zoom out, and full-screen mode and also contains the compass bearing of the direction in which the image is being viewed when it is available in the metadata.
+#'
+#' The 360-degree Viewing Mode allows the user to extract target information from each selected image. Figure 6 (below) shows several key ecological applications, including species identification and mapping (left), estimation of vertically projected ground-layer vegetation cover (centre), and estimation of crown health for individual trees (right). In each case data annotation is performed in the Annotation Panel using help files as visual and/or descriptive aids (see below).
+#'
+#' Estimation of vertically projected ground layer cover may be assisted by overlaying sampling templates constructed from reference images (eg., camera images containing plots of specified size laid out using markers or tape etc.) onto each sample image. In this example (Figure 6 centre) a 10 m diameter plot is shown, centred on the vertically projected camera location. The plot has been broken into 4, 20 and 100 equal areal increments (90, 18 and 3.6 degrees) to assist with cover estimation of scattered and/or small taxa. The two orthogonal lines that divide the plot have been marked with 1 m increments to assist the user in estimating size and cover while taking into account image distortion.
+#'
+#' One key benefit of sampling in transects or in a regular pattern is that objects may be viewed from multiple perspectives for identification and/or classification. This is advantageous when sampling objects with obstructed views or large, three-dimensional objects that are not entirely visible from a single perspective.
+#'
+#' ![Common ecological applications using the image panel. Left: species identification and mapping. Four candidate species are labelled (A-D). The plants labelled C and D can be located by dropping a pin in the Mapping Panel. Centre: cover estimation of ground layer vegetation. Cover may be assisted by comparison with example 25%, 5% and 1% areas. Right: Crown health classification. In this example the intent is to estimate the percentage of the potential crown that has healthy green leaves. Images can be drawn on and cropped and exported in Drawing Mode (below) .](Images/Figure6_small.jpg){fig-align="center" width="95%"}
+#'
+#' ### Drawing Mode
+#'
+#' When Drawing Mode is enabled, the Image Panel shows a flattened equirectangular image rather than the 360-degree Pannellum view (Figure 7). A toolbar allows the user to draw point markers, rectangles, and more complex polygons onto the equirectangular image in the same way as the Mapping Panel. This allows the user to select sub-images (`patches` or `crops`) or locations on the original image that are of interest. Any drawn geometric object can be moved and rectangles and polygons can be re-drawn. The display of geometric objects added in Drawing Mode can be altered from the `Image Panel Settings` section of Main Settings.
+#'
+#' ![Drawing Mode allows the user to draw points, rectangles and polygons on flattened equirectangular images.](Images/Figure7_small.jpg){fig-align="center" width="95%"}
+#'
+#' When a point or shape object is drawn onto the equirectangular image an ID number is created (based on timestamp) and added to the underlying annotation dataframe, along with its geometry (based on pixel locations). A linked annotation card also opens in the Annotation Panel for adding lookup-based data. Geometry icons and IDs are shown in both the annotation cards and in the Image Panel. The metadata containing the ID, geometry, and annotations are automatically saved to the annotation dataframe and all records can be exported as `.csv` or `.rds` files from the Annotation Panel.
+#'
+#' Finally, rectangle and polygon geometries drawn on a selected image can be exported using the `Export Cropped Polygon Images` button. This generates a cropped image file (`.png`) of the underlying equirectangular image based on the bounding box of the drawn geometries. If the geometry stroke (border) and fill are enabled the image is cropped to a bounding box with a small buffer, and if they are disabled the image is cropped to the exact dimensions of the geometry bounding box. The stroke and fill of polygons on the exported version of cropped sub-images can be turned on and off using the `Show Polygon Stroke/Fill In Cropped Image Export` settings in Main Settings.
+#'
+#' The name of a cropped image consists of the associated geometric object's ID appended to the original 360-degree image name, while the geolocation of the underlying image is embedded in the metadata. Cropped images are saved in a user-selected folder.
+#'
+#' ## Annotation Panel
+#'
+#' The purpose of the Annotation Panel is to generate data from camera images and linked geometries using pre-determined data fields and then export that data. The top of the panel shows the user name dropdown menu, annotation file name, the image file currently loaded in the Image Panel, help buttons for enabled lookups, and export controls. The user name list is customisable and each user name generates a separate annotation file. The ability to add multiple users is essential because it allows for evaluation of classification or scoring reliability among different users.
+#'
+#' ### Adding Data Records
+#'
+#' A new data record is added to a selected equirectangular image by clicking the `Add A Whole Image Annotation` button (Figure 8). In the example provided the presence of the plant species (Mulga, *Acacia aneura*) is added to the image annotation. Lookup menus for adding records are user-defined according to the requirements of the project. Multiple new records can be added to each whole image; these are clustered in the Mapping Panel and exploded by clicking the cluster icon.
+#'
+#' ![Annotation Panel controls, including the user selector, lookup dropdown, and whole-image annotation record. The process is the same for points, rectangles and polygons drawn on maps or 360-degree equirectangular images.](Images/Figure8_small.jpg){fig-align="center" width="95%"}
+#'
+#' When point markers, rectangles, or polygons are added to an image in either the Mapping Panel or the Image Panel, a new data record is automatically generated in the Annotation Panel. All records contain a feature type and an object ID. Individual annotation records can be deleted using the trash button and shown or hidden using the chevron button.
+#'
+#' ### Help files
+#'
+#' Data records can be added with the assistance of help files accessed using the associated lookup help buttons. Help buttons are shown only for the lookups that are currently enabled. Help files developed by the user can be uploaded as required. Examples include reference images for species identity (Figure 9, top row), cover classes (Figure 9, centre row), and size class (Figure 9, bottom row).
+#'
+#' ![Example help files for collection of ecological data from 360 degree images.](Images/Figure9_small.jpg){fig-align="center" width="95%"}
+#'
+#' ### Exporting Data
+#'
+#' Data may be exported in `.csv` and `.rds` formats. An example `.rds` file viewed in R is provided below (Figure 10). The file contains user name, ID, image file, feature type, geometry, and the user-defined lookup fields captured in the Annotation Panel.
+#'
+#' ![Exported data file containing annotations appended to camera image metadata.](Images/Figure10_small.jpg){fig-align="center" width="95%"}
+#'
+#' Rectangle and polygon geometries drawn on a selected image in Drawing Mode of the Image Panel can be exported using the `Export Cropped Polygon Images` button. This generates cropped image file(s) (`.png`) that are saved to a user-defined folder.
+#'
+#' ## Annotation Table Panel
+#'
+#' The Annotation Table panel spans the full width below the main workspace. It provides a single place to review annotation records across images and geometry types. The table structure follows the enabled lookup configuration, so changing lookup labels or enabling and disabling lookups changes the columns that appear in the table and in exported data. When `rhandsontable` is available, the panel can be used for in-place review and editing workflows.
+#'
+#' ### Visualising and Validating Data
+#'
+#' Below is a simple example of R code for visualising a sample of exported data using the R package mapview. Quarto files that contain a complete set of code for extracting and visualising species distribution data, cover data and tree crown health data, and that validate data extracted from images compared to data collected in the field are provided in the accompanying pannotator_examples and pannotator_data_validation files.
+#'
+#' This example code generates a plot of scores on the variable dd2 (percentage of tree crown with live leaves) using the package mapview.
+#'
 ## ----echo=TRUE, eval=FALSE, results='hold', warning=FALSE, include=TRUE-------
-#  
-#  library(dplyr)
-#  library(mapview)
-#  library(RColorBrewer)
-#  library(sf)
-#  
-#  
-#  df_annotation <- readRDS("C:/user_1_annotations.rds") # read in the .rds file
-#  df_annotation <- st_as_sf(df_annotation, wkt = "geometry",crs = 4326) #define
-#  #the geometry
-#  
-#  df_annotation$dd2 <- as.numeric(df_annotation$dd2) # dd2 = -999 where crowns
-#  # have not been assessed for health (NA); range = 0 for no live leaves (entirely
-#  # dead) to 100 for entire crown healthy with green leaves
-#  
-#  df_annotation <- subset(df_annotation, dd2 > -1 ) # select only records where
-#  # Allocasuarina crowns have been assessed for health; that is, excluding NA records
-#  
-#  
-#  mapviewOptions(basemaps = c("Esri.WorldImagery"),
-#                 vector.palette = colorRampPalette(c("red","orange", "yellow", "green")),
-#                 layers.control.pos = "topright")
-#  
-#  
-#  mapview(df_annotation, zcol = "dd2 ", na.rm = TRUE)
-#  
+#
+# library(mapview)
+# library(sf)
+#
+#
+# df_annotation <- readRDS("C:/user_1_annotations.rds") # read in the .rds file
+# df_annotation <- st_as_sf(df_annotation, wkt = "geometry",crs = 4326) #define
+# #the geometry
+#
+# df_annotation$dd2 <- as.numeric(df_annotation$dd2) # dd2 = -999 where crowns
+# # have not been assessed for health (NA); range = 0 for no live leaves (entirely
+# # dead) to 100 for entire crown healthy with green leaves
+#
+# df_annotation <- subset(df_annotation, dd2 > -1 ) # select only records where
+# # Allocasuarina crowns have been assessed for health; that is, excluding NA records
+#
+#
+# mapviewOptions(basemaps = c("Esri.WorldImagery"),
+#                vector.palette = colorRampPalette(c("red","orange", "yellow", "green")),
+#                layers.control.pos = "topright")
+#
+#
+# mapview(df_annotation, zcol = "dd2 ", na.rm = TRUE)
+#
 
+#'
+#' ![Map generated using mapview.](Images/Figure11_small.jpg){fig-align="center" width="95%"}
+#'
+#' This example code generates a plot of scores of the relationship between the number of plant species (i.e., species richness) recorded in a field survey (x axis) and camera survey (y axis) of the same plots (n = 79). It also fits a linear model to the relationship, plots the line of best fit, and prints the model statistics.
+#'
 ## ----echo=TRUE, eval=FALSE, results='hold', warning=FALSE, include=TRUE-------
-#  #read in the species data file#
-#  
-#  species_data <- read_csv("Calibration_species.csv", show_col_types = FALSE)
-#  
-#  # confirm that there are 79 plots of species data
-#  cat("The number of rows in the dataframe is", nrow(species_data), "\n")
-#  
-#  
-#  # now determine the relationship between plot-level species counts in the field survey versus camera survey counts. abline adds a linear model to the plot   #
-#  
-#  plot(species_data$No_Field_species, species_data$No_Camera_species,
-#       main = "Plot-level species richness",
-#       xlab = "No. of species (Field Survey)",
-#       ylab = "No. of species (Camera Survey)",
-#       pch = 16,  # Use filled circles as data points
-#       col = "black",  # Set point color
-#       ylim = c(0, 8),  # Set y-axis limits
-#       xlim = c(0, 8))  # Set x-axis limits
-#  abline(lm(No_Camera_species ~ No_Field_species, data = species_data), col = "red")
-#  
-#  # view the linear model statistics #
-#  model <- lm(No_Camera_species ~ No_Field_species, data = species_data)
-#  
-#  model_summary <- summary(model)
-#  print(model_summary)
-#  
+# # read in the species data file #
+#
+# species_data <- read.csv("Calibration_species.csv", stringsAsFactors = FALSE)
+#
+# # confirm that there are 79 plots of species data
+# cat("The number of rows in the dataframe is", nrow(species_data), "\n")
+#
+#
+# # now determine the relationship between plot-level species counts in the field survey versus camera survey counts. abline adds a linear model to the plot   #
+#
+# plot(species_data$No_Field_species, species_data$No_Camera_species,
+#      main = "Plot-level species richness",
+#      xlab = "No. of species (Field Survey)",
+#      ylab = "No. of species (Camera Survey)",
+#      pch = 16,  # Use filled circles as data points
+#      col = "black",  # Set point color
+#      ylim = c(0, 8),  # Set y-axis limits
+#      xlim = c(0, 8))  # Set x-axis limits
+# abline(lm(No_Camera_species ~ No_Field_species, data = species_data), col = "red")
+#
+# # view the linear model statistics #
+# model <- lm(No_Camera_species ~ No_Field_species, data = species_data)
+#
+# model_summary <- summary(model)
+# print(model_summary)
+#
 
+#'
+#' ![Relationship between number of plant species recorded in a field survey (x axis) and camera survey (y axis) of the same plots.](Images/Figure12_small.jpg){fig-align="center" width="95%"}

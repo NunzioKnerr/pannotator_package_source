@@ -9,6 +9,7 @@ run_app(
   options = list(),
   enableBookmarking = NULL,
   uiPattern = "/",
+  projectSettingsFile = NULL,
   ...
 )
 }
@@ -33,24 +34,32 @@ request to determine whether the \code{ui} should be used to handle the
 request. Note that the entire request path must match the regular
 expression in order for the match to be considered successful.}
 
+\item{projectSettingsFile}{Optional path to a project YAML file to load at startup.}
+
 \item{...}{Additional arguments to pass to `golem_opts`. See `?golem::get_golem_options` for more details.}
 }
 \value{
 No return value, called for side effects. Launches the Shiny app.
 }
 \description{
-`run_app()` starts the Shiny application contained in this package, with an option to load settings from a YAML file using additional option: projectSettingsFile = "pathToYamlFile".
+`run_app()` starts the Shiny application contained in this package, with an option to load settings from a YAML file using `projectSettingsFile = "pathToYamlFile"`.
 }
 \details{
 This function initializes and runs the Shiny app developed with the golem framework.
 It optionally loads application-specific settings from a YAML file, which can be useful for project-specific configurations.
+Project YAML files can be exported from the Settings panel inside the app.
 }
 \examples{
 if (interactive()) {
   # Example: Run the application with default settings
+
+  options(shiny.port=httpuv::randomPort(),
+          shiny.launch.browser = .rs.invokeShinyWindowExternal,
+          shiny.maxRequestSize=9000*1024^2)
+
   run_app()
 
-  # Example: Run the application with a specific YAML configuration file
+  # Example: Run the application with a project YAML exported from Settings
   run_app(projectSettingsFile = "C:/test-project.yml")
 }
 }

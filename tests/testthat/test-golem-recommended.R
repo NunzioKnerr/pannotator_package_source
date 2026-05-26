@@ -57,6 +57,9 @@ testServer(app_server, {
   # Set and test an input
   session$setInputs(x = 2)
   expect_equal(input$x, 2)
+  expect_true(inherits(session$userData$app_state, "reactivevalues"))
+  expect_false(identical(session$userData$app_state, r))
+  expect_false(is.null(session$userData$runtime_context))
 
   # Example of tests you can do on the server:
   # - Checking reactiveValues

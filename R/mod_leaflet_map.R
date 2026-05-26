@@ -10,6 +10,7 @@
 
 mod_leaflet_map_ui <- function(id){
   ns <- NS(id)
+  viewer_height <- main_workspace_viewer_height()
 
   tagList(
 
@@ -32,7 +33,9 @@ mod_leaflet_map_ui <- function(id){
     ) |> shinyhelper::helper(type = "markdown",
                              content = "kmz_file_loader_help",
                              icon = "question-circle"),
-    leaflet::leafletOutput(ns("mymap"), height = 660),
+    uiOutput(ns("map_notice")),
+    uiOutput(ns("map_status")),
+    leaflet::leafletOutput(ns("mymap"), height = viewer_height),
     fileInput(ns("overlay_file"), "Load An Overlay:", accept = c(".kml"), placeholder = "Use this to add an overlay (.kml only...)"
     ) |> shinyhelper::helper(type = "markdown",
                              content = "kml_overlay_loader_help",
@@ -47,7 +50,42 @@ mod_leaflet_map_server <- function(id, r){
   moduleServer( id, function(input, output, session){
     ns <- session$ns
 
-    #output$mymap <- loadBaseLeafletMap()
+    output$mymap <- loadBaseLeafletMap(config = runtime_config_value(r))
+
+    output$map_notice <- renderUI({
+      notice <- r$map_panel_notice
+      if (is.null(notice)) {
+        return(NULL)
+      }
+
+      panel_notice(
+        title = notice$title,
+        message = notice$message,
+        type = notice$type
+      )
+    })
+
+    output$map_status <- renderUI({
+      if (is.null(r$user_name) || !nzchar(r$user_name)) {
+        return(panel_status_message(
+          "Select a user name in the Annotation Panel, then load a .kmz file here."
+        ))
+      }
+
+      if (is.null(r$imgs_lst) || length(r$imgs_lst) == 0) {
+        return(panel_status_message(
+          "Load a .kmz file to populate the map and unlock image navigation."
+        ))
+      }
+
+      NULL
+    })
+
+    observe({
+      req(r$workspace_reset)
+      output$mymap <- loadBaseLeafletMap(config = runtime_config_value(r))
+      shinyjs::reset("kmz_file")
+    }) |> bindEvent(r$workspace_reset)
 
     #shinyjs::disable("kmz_file")
     #shinyjs::hide("overlay_file")
@@ -56,45 +94,62 @@ mod_leaflet_map_server <- function(id, r){
     observe({
       req(input$kmz_file)
 
+      exiftool_status <- r$exiftool_status
+      if (is.null(exiftool_status)) {
+        exiftool_status <- get_exiftool_status()
+        r$exiftool_status <- exiftool_status
+      }
+
+      if (!isTRUE(exiftool_status$installed)) {
+        r$map_panel_notice <- list(
+          title = "ExifTool Required",
+          message = "ExifTool is required to read image metadata from KMZ images. Open Settings, install ExifTool, then try loading the KMZ again.",
+          type = "warning"
+        )
+        return()
+      }
+
+      r$map_panel_notice <- NULL
+      r$current_kmz_name <- basename(input$kmz_file$name)
+
       withProgress(message = "Loading KMZ", value = 0, {
         # 1) Unzip and prep
         setProgress(0.5, detail = "Getting images")
-        files_extracted <- unzipKmz(input$kmz_file$datapath)
+        files_extracted <- unzipKmz(input$kmz_file$datapath, runtime = r)
 
         # 2) Load image metadata
         setProgress(0.75, detail = "Loading image metadata")
-        r$imgs_metadata <- load_image_metadata(file.path(tempdir(), "files"))
+        r$imgs_metadata <- load_image_metadata(runtime_kmz_files_dir(r))
 
         # 3) List images
         setProgress(0.9, detail = "Indexing image files")
-        r$imgs_lst <- get_image_files(file.path(tempdir(), "files"))
+        r$imgs_lst <- get_image_files(runtime_kmz_files_dir(r))
 
         # 4) Read KML + draw map
         setProgress(0.95, detail = "Reading KML & map")
-        fName <- file.path(tempdir(), "doc.kml")
-        myKml <- readr::read_file(fName)
+        fName <- runtime_kml_path(r)
+        myKml <- read_text_file(fName)
 
-        output$mymap <- loadBaseLeafletMap(kml = myKml)
-        golem::invoke_js("showid", "image_panel")
+        output$mymap <- loadBaseLeafletMap(kml = myKml, config = r$config)
 
         # 5) Done
         setProgress(1, detail = files_extracted)
       })
-    }) %>% bindEvent(input$kmz_file)
+    }) |> bindEvent(input$kmz_file)
 
     #overlay file observer ----
     observe({
-      #myOverlayMap <- readr::read_file(input$overlay_file$datapath)
+      #myOverlayMap <- read_text_file(input$overlay_file$datapath)
       addMapOverlay(input$overlay_file)
 
-      if(myEnv$config$showPopupAlerts == TRUE){
-        shinyWidgets::show_alert(
-          title = "Map Overlay Loaded!",
-          text = "Added the map overlay to the map panel.",
-          type = "info"
+      if(isTRUE(r$config$showWorkflowGuidanceNotices)){
+        r$map_panel_notice <- list(
+          title = "Map Overlay Loaded",
+          message = "Added the selected overlay to the mapping panel.",
+          type = "success"
         )
       }
-    })%>% bindEvent(input$overlay_file)
+    }) |> bindEvent(input$overlay_file)
 
     #current image changes observer ----
     observe({
@@ -103,17 +158,21 @@ mod_leaflet_map_server <- function(id, r){
 
       r$current_map_zoom <- input$mymap_zoom
 
-      addCurrentImageToMap()
+      addCurrentImageToMap(runtime = r)
 
-      previous_annotations_map <- check_for_annotations(r$user_annotations_data, r$current_image)
+      previous_annotations_map <- check_for_annotations(
+        r$user_annotations_data,
+        r$current_image,
+        mySourceKmz = r$current_kmz_name
+      )
 
-      if(nrow(previous_annotations_map > 1)){
+      if(nrow(previous_annotations_map) >= 1){
         #print("annotations already exist")
-        add_annotations_to_map()
+        add_annotations_to_map(runtime = r)
 
       }
 
-    }) %>% bindEvent(r$current_image)
+    }) |> bindEvent(r$current_image)
 
     # triggered when item added using drawToolbar ----
     observe({
@@ -137,7 +196,7 @@ mod_leaflet_map_server <- function(id, r){
       # now add feature to reactive so it can trigger in other modules
       r$new_leafletMap_item <- feature
 
-    }) %>% bindEvent(input$mymap_draw_new_feature)  # Make sure to bind to the drawing event
+    }) |> bindEvent(input$mymap_draw_new_feature)  # Make sure to bind to the drawing event
 
     # item edited using drawToolbar observer ----
     observe({
@@ -155,21 +214,21 @@ mod_leaflet_map_server <- function(id, r){
       r$user_annotations_data <- edit_annotation_data(myUserAnnotationsData = r$user_annotations_data, myId = editedFeatures$properties$layerId, myGeometry=myGeometry)
       save_annotations(myAnnotations=r$user_annotations_data, myAnnotationFileName = r$user_annotations_file_name)
 
-    }) %>% bindEvent(input$mymap_draw_edited_features)  # Ensure the observe event triggers upon feature edits
+    }) |> bindEvent(input$mymap_draw_edited_features)  # Ensure the observe event triggers upon feature edits
 
     # add single item to the map from control form observer ----
     observe({
       #print("new map item: leaflet")
       req(r$new_leafletMap_item)
-      add_annotations_to_map()
-    }) %>% bindEvent(r$new_leafletMap_item)
+      add_annotations_to_map(runtime = r)
+    }) |> bindEvent(r$new_leafletMap_item)
 
     # remove_leafletMap_item observer ----
     observe({
       #print("remove_map_item: leaflet")
       req(r$remove_leafletMap_item)
-      remove_map_item()
-    }) %>% bindEvent(r$remove_leafletMap_item)
+      remove_map_item(runtime = r)
+    }) |> bindEvent(r$remove_leafletMap_item)
 
     # click leaflet circle markers observer ----
     # CHANGE: Handle clicks from leaflet circle markers/shapes after replacing
@@ -189,20 +248,19 @@ mod_leaflet_map_server <- function(id, r){
       req(clicked_image)
       r$current_image <- paste0(clicked_image)
       r$current_image_metadata <- get_image_metadata(r$imgs_metadata, r$current_image)
-    }) %>% bindEvent(input$mymap_marker_click, input$mymap_shape_click, input$mymap_geojson_click)
+    }) |> bindEvent(input$mymap_marker_click, input$mymap_shape_click, input$mymap_geojson_click)
 
     # refresh_leaflet_item when user clicks ApplySettingsButton observer ----
     observe({
       #print("refresh_leaflet_item: map")
       req(r$refresh_user_config, r$current_image)
       #fName <- paste0(app_sys("/app/www/doc.kml"))
-      temp_dir <- tempdir()
-      fName <- file.path(temp_dir, "/doc.kml")
-      myKml <- readr::read_file(fName)
-      output$mymap <- loadBaseLeafletMap(kml=myKml)
-      addCurrentImageToMap()
-      add_annotations_to_map()
-    }) %>% bindEvent(r$refresh_user_config)
+      fName <- runtime_kml_path(r)
+      myKml <- read_text_file(fName)
+      output$mymap <- loadBaseLeafletMap(kml=myKml, config = r$config)
+      addCurrentImageToMap(runtime = r)
+      add_annotations_to_map(runtime = r)
+    }) |> bindEvent(r$refresh_user_config)
 
   })
 }

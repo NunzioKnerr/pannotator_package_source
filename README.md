@@ -10,7 +10,18 @@
 
 ## pannotator
 
-The Panospheric Image Annotator in R (pannotator) software package provides an easy-to-use interface for visualising 360 degree camera images on satellite imagery and annotating the images with data selected from user-defined drop-down menus. It is designed for use in ecological and biogeographical research but can be used to extract data from any spatially explicit 360 degree camera imagery. This vignette provides an overview of the functionality of the package, including setup and configuration, interface layout, image selection, drop-down menu specification, annotation of image files, and exporting data.
+The Panospheric Image Annotator in R (pannotator) software package provides an easy-to-use interface for visualising 360 degree camera images on satellite imagery and annotating the images with data selected from user-defined drop-down menus. It is designed for use in ecological and biogeographical research but can be used to extract data from any spatially explicit 360 degree camera imagery.
+
+The current app includes:
+
+- a modular workspace with Mapping, Image, Annotation, and Annotation Table panels
+- persistent Settings that can sit below the workspace or open in a left/right drawer
+- editable lookup and username `.csv` tables in Settings
+- project YAML export for relaunching with `run_app(projectSettingsFile = ...)`
+- ExifTool status/install helpers in Settings
+- annotation exports that include a `sourcekmz` field
+
+For a fuller walkthrough of setup, configuration, annotation workflows, and export options, see the package vignette.
 
 ## Installation
 
@@ -18,11 +29,11 @@ The Panospheric Image Annotator in R (pannotator) software package provides an e
 
 To use this package, please ensure your system meets the following minimum requirements:
 
--   **R version**: 4.4.0 or higher
+- **R version**: 4.4.0 or higher
 
--   **RStudio version**: 2024.04.2+764 or higher
+- **RStudio version**: 2024.04.2+764 or higher
 
--   **Shiny version**: 1.9.1 or higher
+- **Shiny version**: 1.9.1 or higher
 
 Additionally, ensure that all necessary system dependencies are installed for optimal performance.
 
@@ -44,7 +55,7 @@ if (check_for_package == "") {
 }
 ```
 
-Now that you have installed exiftoolr we can check to make sure that ExifTool is on your system.
+Now that you have installed exiftoolr we can check to make sure that ExifTool is on your system. You can also check and install ExifTool from the `System Dependencies` section in the app Settings panel.
 
 ``` r
 library(exiftoolr)  
@@ -60,30 +71,6 @@ if (exists("check_for_ExifTool")) {
 }
 ```
 
-You must also install the "remotes" package which we will use to install the pannotator package.
-
-``` r
-check_for_package <-  system.file(package = "remotes")
-
-print(check_for_package)
-# If not run the following code
-if (check_for_package == "") {
-  print("remotes package not found .....installing now")
-  install.packages("remotes")
-} else {
-  print("remotes package is already installed")
-}
-```
-
-You can now install the development version of the pannotator software.
-
-``` r
-library(remotes)
-
-# to install from github use this code: 
-remotes::install_github("nunzioknerr/pannotator_package_source")
-```
-
 ## Running the Package
 
 To run the application use the following code.
@@ -91,12 +78,15 @@ To run the application use the following code.
 ``` r
 library(pannotator)
 
-options(shiny.port = httpuv::randomPort(), shiny.launch.browser = .rs.invokeShinyWindowExternal, shiny.maxRequestSize = 5000 * 1024^2)
+options(shiny.port = httpuv::randomPort(), shiny.launch.browser = .rs.invokeShinyWindowExternal, shiny.maxRequestSize = 9000 * 1024^2)
 
 run_app()
+
+# Optional: launch with a project-specific YAML file exported from Settings
+# run_app(projectSettingsFile = "C:/path/to/project.yml")
 ```
 
-Once run, the above code will popup a browser window with the shiny application inside it.
+By default `run_app()` uses the regular user settings created by the package. If you export a project YAML from the Settings panel you can pass it back into `run_app(projectSettingsFile = ...)` to reopen the app with project-specific layout, lookup, and map/image settings.
 
 ## Help Vignette
 

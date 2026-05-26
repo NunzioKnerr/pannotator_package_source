@@ -73,7 +73,7 @@ golem::add_fct("helpers", with_test = TRUE, open = FALSE)
 # Documentation
 
 ## Vignette ----
-usethis::use_vignette("pannotator")
+#usethis::use_vignette("pannotator")
 #devtools::build_vignettes()
 
 ## Code Coverage----
