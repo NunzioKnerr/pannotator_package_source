@@ -9,19 +9,8 @@
 #' @importFrom shiny NS tagList
 mod_360_image_ui <- function(id){
   ns <- NS(id)
+  viewer_height <- main_workspace_viewer_height()
   tagList(
-    tags$head(
-      tags$style(
-        HTML(".shiny-notification {
-              height: 50px;
-              width: 200px;
-              position:fixed;
-              top: calc(50% - 25px);;
-              left: calc(50% - 100px);;
-            }"
-        )
-      )
-    ),
     # Div to hold the select input and button, using flexbox for alignment
     div(
       style = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;",
@@ -34,13 +23,15 @@ mod_360_image_ui <- function(id){
         width = "100%",
         #selected = 1
         options = list(title = "THIRD: Select an image to annotate....")
-      ), #%>% shinyhelper::helper(type = "markdown", content = "image_loader", icon = "question-circle"),
+      ),
       style = "flex-grow: 1; margin-right: 5px;"), # Adjusted for spacing and flexible width
       shiny::uiOutput(ns("toggleButton"), style = "align-self: flex-end; margin-bottom: 8px; width: 95%;")
     ),
+    uiOutput(ns("image_notice")),
+    uiOutput(ns("image_status")),
 
     # Container to hold both the Leaflet output and the iframe
-    div(style = "position: relative; height: 750px;", # Ensuring container has a defined height
+    div(style = paste0("position: relative; height: ", viewer_height, ";"), # Ensuring container has a defined height
         div(id = ns("leaflet360Container"),
             style = "position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 100;",
             leaflet::leafletOutput(ns("leaflet360"), height = "100%")
@@ -56,6 +47,21 @@ mod_360_image_ui <- function(id){
   )
 }
 
+
+clear_image_ready_notice <- function(notice, current_image) {
+  if (is.null(notice)) {
+    return(NULL)
+  }
+
+  if (!is.null(current_image) &&
+      nzchar(current_image) &&
+      identical(notice$title, "Images Ready")) {
+    return(NULL)
+  }
+
+  notice
+}
+
 #' 360_image Server Functions
 #'
 #' @noRd
@@ -63,34 +69,92 @@ mod_360_image_server <- function(id, r){
   moduleServer( id, function(input, output, session){
     ns <- session$ns
 
+    output$leaflet360 <- loadBaseLeaflet360()
+    toggleState <- reactiveVal(TRUE)  # TRUE for 'Draw', FALSE for 'View'
+
+    output$image_notice <- renderUI({
+      notice <- r$image_panel_notice
+      if (is.null(notice)) {
+        return(NULL)
+      }
+
+      panel_notice(
+        title = notice$title,
+        message = notice$message,
+        type = notice$type
+      )
+    })
+
+    output$image_status <- renderUI({
+      if (is.null(r$user_name) || !nzchar(r$user_name)) {
+        return(panel_status_message(
+          "Select a user name in the Annotation Panel to start an annotation session."
+        ))
+      }
+
+      if (is.null(r$imgs_lst) || length(r$imgs_lst) == 0) {
+        return(panel_status_message(
+          "Load a .kmz file in the Mapping Panel to make images available here."
+        ))
+      }
+
+      if (is.null(r$current_image) || !nzchar(r$current_image)) {
+        return(panel_status_message(
+          "Select an image from the dropdown or click an image marker on the map."
+        ))
+      }
+
+      NULL
+    })
+
+    observe({
+      req(r$workspace_reset)
+      toggleState(TRUE)
+      output$leaflet360 <- loadBaseLeaflet360()
+      shinyWidgets::updatePickerInput(
+        session = session,
+        inputId = "img_dd",
+        choices = character(0),
+        selected = character(0),
+        options = list(title = "THIRD: Select an image to annotate....")
+      )
+    }) |> bindEvent(r$workspace_reset)
+
     #set the image dropdown to load when the kmz is unzipped and r$imgs_lst is changed
     observe({
       req(r$imgs_lst)
       #changed this to automatcally select the first image as the pin dropping needs it to have one
       shinyWidgets::updatePickerInput(session = session, inputId = "img_dd", choices = r$imgs_lst, selected = r$imgs_lst[1], options = list(title = "Now Select an image to annotate it."))
-      if(myEnv$config$showPopupAlerts == TRUE){
-        shinyWidgets::show_alert(
-          title = "ALMOST SET.. Now annotate the images",
-          text = "You can change the image using the dropdown in the middle and use the buttons on the right to start annotating.",
+      if(isTRUE(r$config$showWorkflowGuidanceNotices)){
+        r$image_panel_notice <- list(
+          title = "Images Ready",
+          message = "Choose an image here or click one on the map, then switch modes as needed to start annotating.",
           type = "info"
         )
       }
 
-    }) %>% bindEvent(r$imgs_lst)
+    }) |> bindEvent(r$imgs_lst)
 
     #setup to watch for a new image loaded into the 360 viewer and change the metadata
     observe({
       #print("image dropdown changed")
       r$current_image <- input$img_dd
       req(r$current_image)
+      r$image_panel_notice <- clear_image_ready_notice(r$image_panel_notice, r$current_image)
       #print(paste0(app_sys("/app/www/files/"),"/",input$img_dd))
       r$current_image_metadata <- get_image_metadata(r$imgs_metadata, r$current_image)
       #print(r$user_annotations_file_name)
-    }) %>% bindEvent(input$img_dd)
+    }) |> bindEvent(input$img_dd)
 
 
     # Render the pano_iframe
     output$pano_iframe <- renderUI({
+      if (is.null(r$current_image) || !nzchar(r$current_image)) {
+        return(panel_empty_state(
+          title = "Image Viewer Ready",
+          message = "Load a .kmz file and choose an image to display the 360 viewer."
+        ))
+      }
 
       ###############################################
       # version for if overlays drawn on 360 as png
@@ -107,7 +171,7 @@ mod_360_image_server <- function(id, r){
       #   #image_to_use <- file.path(temp_dir, r$current_image)
       # }
 
-      image_to_use <- paste0("/temp_dir/files/", r$current_image)
+      image_to_use <- runtime_image_url(r$current_image, runtime = r)
       #print(r$current_image)
       #temp_dir <- tools::R_user_dir("pannotator")
 
@@ -123,25 +187,34 @@ mod_360_image_server <- function(id, r){
       #                   "files/",r$current_image,
       #                   "&autoLoad=true&autoRotate=0&ignoreGPanoXMP=true")
 
-      tags$iframe(src = utils::URLencode(src_url), width = "100%", height = "750px")#%>% shinyhelper::helper(type = "markdown", content = "image_loader", icon = "question-circle fa-lg")
+      tags$iframe(
+        src = utils::URLencode(src_url),
+        width = "100%",
+        height = main_workspace_viewer_height()
+      )
     })
 
     #just for changing the button label and icon
-    toggleState <- reactiveVal(TRUE)  # TRUE for 'Draw', FALSE for 'View'
     # Dynamic UI for the action button
     output$toggleButton <- renderUI({
+      has_current_image <- !is.null(r$current_image) && nzchar(r$current_image)
+      toggle_button <- shiny::actionButton(
+        inputId = ns("togglePano"),
+        label = if (toggleState()) "Switch To Drawing Mode" else "Switch To Viewing Mode",
+        icon = shiny::icon(if (toggleState()) "draw-polygon" else "globe"),
+        style = "margin-bottom: 6px; margin-right: 5px; width: 95%;"
+      )
+
+      if (!has_current_image) {
+        toggle_button <- shinyjs::disabled(toggle_button)
+      }
+
       shiny::div(style = "text-align: right;",  # Aligns all content in the div to the right
                  shiny::tagList(
-                   # The main toggle button
-                   shiny::actionButton(
-                     inputId = ns("togglePano"),
-                     label = if (toggleState()) "Switch To Drawing Mode" else "Switch To Viewing Mode",
-                     icon = shiny::icon(if (toggleState()) "draw-polygon" else "globe"),
-                     style = "margin-bottom: 6px; margin-right: 5px; width: 95%;"  # Added margin-right for spacing
-                   ),
+                   toggle_button,
 
                    # Additional button for exporting polygons as images
-                   if (!toggleState() && !is.null(r$current_annotation_360polygons) && nrow(r$current_annotation_360polygons) > 0) {
+                   if (has_current_image && !toggleState() && !is.null(r$current_annotation_360polygons) && nrow(r$current_annotation_360polygons) > 0) {
                      shinyFiles::shinyDirButton(id=ns("exportPolygonsAsImages"), label='Export Cropped Polygon Images', title='Please select a folder to export the cropped images into :)', icon=icon("download"), multiple=FALSE, viewtype="list", style = "margin-right: 5px; width: 95%;")
                    }
                  )
@@ -175,7 +248,7 @@ mod_360_image_server <- function(id, r){
         #print(annotations_export_dir)
 
         #added progressIndicator in function
-        create_cropped_polygons_from_360_images(annotations_export_dir)
+        create_cropped_polygons_from_360_images(annotations_export_dir, runtime = r)
 
         #export_success <-  create_cropped_polygons_from_360_images(annotations_export_dir)
 
@@ -183,16 +256,16 @@ mod_360_image_server <- function(id, r){
         #   print("the export was successful")
         # }
 
-        shinyWidgets::show_alert(
-          title = "Export Successful!",
-          text = HTML(paste0("The cropped images are in:<br>", annotations_export_dir )),
-          html = TRUE,
+        r$image_panel_notice <- list(
+          title = "Export Successful",
+          message = HTML(paste0("The cropped images are in:<br>", annotations_export_dir)),
           type = "success"
         )
+        close_shinyfiles_dialog()
 
       }
 
-    }) %>% bindEvent(input$exportPolygonsAsImages)
+    }) |> bindEvent(input$exportPolygonsAsImages)
 
     # Toggle the visibility of the Leaflet360 map and the iframe
     observe({
@@ -200,23 +273,27 @@ mod_360_image_server <- function(id, r){
       # Toggle the current state
       toggleState(!toggleState())
       shinyjs::toggle(id="panoContainer", anim=TRUE)
-    }) %>% bindEvent(input$togglePano)
+    }) |> bindEvent(input$togglePano)
 
     # triggered when the current image changes
     observe({
       #print("r$current_image changed: mod_360_image")
       req(r$imgs_lst, r$current_image)
-      output$leaflet360 <- addCurrentImageToLeaflet360()
+      r$image_panel_notice <- clear_image_ready_notice(r$image_panel_notice, r$current_image)
+      output$leaflet360 <- addCurrentImageToLeaflet360(runtime = r)
 
-      #TODO check if this fixes the current_annotations
       r$current_annotation_360markers <- NULL
       r$current_annotation_360polygons <- NULL
 
-      previous_annotations_360 <- check_for_annotations(r$user_annotations_data, r$current_image)
+      previous_annotations_360 <- check_for_annotations(
+        r$user_annotations_data,
+        r$current_image,
+        mySourceKmz = r$current_kmz_name
+      )
 
-      if(nrow(previous_annotations_360 > 1)){
+      if(nrow(previous_annotations_360) >= 1){
         #print("annotations already exist")
-        add_annotations_to_360()
+        add_annotations_to_360(runtime = r)
       }
 
       # code for auto updating dropdown if leaflet_map is clicked
@@ -228,7 +305,7 @@ mod_360_image_server <- function(id, r){
         options = list(title = "Now Select an image to annotate it.")
       )
 
-    }) %>% bindEvent(r$current_image)
+    }) |> bindEvent(r$current_image)
 
 
     # triggered when new leaflet item added to leaflet360
@@ -254,7 +331,7 @@ mod_360_image_server <- function(id, r){
       # now add feature to reactive so it can trigger in other modules
       r$new_leaflet360_item <- feature
 
-    }) %>% bindEvent(input$leaflet360_draw_new_feature)  # Make sure to bind to the drawing event
+    }) |> bindEvent(input$leaflet360_draw_new_feature)  # Make sure to bind to the drawing event
 
 
     # triggered when item edited using drawToolbar
@@ -277,7 +354,7 @@ mod_360_image_server <- function(id, r){
       r$user_annotations_data <- edit_annotation_data(myUserAnnotationsData = r$user_annotations_data, myId = editedFeatures$properties$layerId, myGeometry=myGeometry)
       save_annotations(myAnnotations=r$user_annotations_data, myAnnotationFileName = r$user_annotations_file_name)
 
-    }) %>% bindEvent(input$leaflet360_draw_edited_features)  # Ensure the observe event triggers upon feature edits
+    }) |> bindEvent(input$leaflet360_draw_edited_features)  # Ensure the observe event triggers upon feature edits
 
 
     # triggered to add a single item to the 360 from control form
@@ -285,29 +362,26 @@ mod_360_image_server <- function(id, r){
       #print("new 360 item: leaflet360")
       #print(r$new_leafletMap_item)
 
-      add_annotations_to_360()
+      add_annotations_to_360(runtime = r)
 
-      #TODO NOT SURE THIS IS THE CORRECT PLACE TO HAVE THIS
-      #call the function to add the overlay for an equirectangular
-      #image to be drawn and generate a png to load in panellum
 
-    }) %>% bindEvent(r$new_leaflet360_item)
+    }) |> bindEvent(r$new_leaflet360_item)
 
     # remove_leaflet_item
     observe({
       #print("remove_leaflet_item: 360")
       req(r$remove_leaflet360_item)
-      remove_360_item()
+      remove_360_item(runtime = r)
 
-    }) %>% bindEvent(r$remove_leaflet360_item)
+    }) |> bindEvent(r$remove_leaflet360_item)
 
     # refresh user config settings on applySettingsButton click
     observe({
       #print("refresh_leaflet_item: 360")
       req(r$refresh_user_config, r$current_image)
       #output$leaflet360 <- addCurrentImageToLeaflet360()
-      add_annotations_to_360()
-    }) %>% bindEvent(r$refresh_user_config)
+      add_annotations_to_360(runtime = r)
+    }) |> bindEvent(r$refresh_user_config)
 
   })
 }

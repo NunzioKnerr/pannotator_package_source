@@ -39,7 +39,6 @@ usethis::use_package("exiftoolr")
 usethis::use_package("utils")
 usethis::use_package("dplyr")
 usethis::use_package("magrittr")
-usethis::use_package("shinythemes")
 usethis::use_package("configr")
 usethis::use_pipe()
 
@@ -74,7 +73,7 @@ golem::add_fct("helpers", with_test = TRUE, open = FALSE)
 # Documentation
 
 ## Vignette ----
-usethis::use_vignette("pannotator")
+#usethis::use_vignette("pannotator")
 #devtools::build_vignettes()
 
 ## Code Coverage----

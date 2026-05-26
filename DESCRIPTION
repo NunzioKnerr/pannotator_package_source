@@ -1,6 +1,6 @@
 Package: pannotator
 Title: Visualisation and Annotation of 360 Degree Imagery
-Version: 1.0.1
+Version: 1.1.0
 Authors@R: c(
     person("Nunzio", "Knerr", , "Nunzio.Knerr@csiro.au", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-0562-9479")),
@@ -23,7 +23,7 @@ Description: Provides a customisable R 'shiny' app for immersively
     train Artificial Intelligence/Machine Learning (AI/ML) models and
     geospatial modelling and analysis of camera based survey data.
 Depends:
-    R (>= 4.1.0)
+    R (>= 4.4.0)
 License: GPL (>= 3)
 URL: https://github.com/NunzioKnerr/pannotator_package_source
 BugReports: 
@@ -40,26 +40,26 @@ Imports:
     golem,
     graphics,
     grDevices,
+    htmltools,
     htmlwidgets,
     jpeg,
     jsonify,
     jsonlite,
     leaflet,
     leafpm,
-    magrittr,
-    readr,
+    rintrojs,
+    rhandsontable,
     scales,
     sf,
     shiny,
     shinyFiles,
     shinyhelper,
     shinyjs,
-    shinythemes,
     shinyWidgets,
-    stringr,
     tools,
     utils
-Suggests: 
+Suggests:
+    httpuv,
     knitr,
     rmarkdown,
     spelling,

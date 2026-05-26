@@ -12,10 +12,10 @@
 ######################################
 
 # Test your app
-
+golem::sanity_check()
 ## Run checks ----
 ## Check the package before sending to prod
-devtools::check()
+#devtools::check()
 devtools::check(cran = TRUE)
 #rhub::rhub_check()
 #?rhub::rhubv2
